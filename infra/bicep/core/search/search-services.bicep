@@ -1,3 +1,14 @@
+// --------------------------------------------------------------------------------------------------------------
+// Search Service
+// --------------------------------------------------------------------------------------------------------------
+// If you have trouble deleting this resource, you may need to manually delete the associated Shared Private Access (SPL) links first:
+// $appName="XXXXXX"
+// $rgName="rg-XXXXXX-dev"
+// $envName="dev"
+// $stAcronym="st"
+// az search shared-private-link-resource delete --name link-to-storage-$appName$stAcronym$envName --service-name $appName-srch-$envName --resource-group $rgName
+// az search shared-private-link-resource delete --name link-to-openai-$appName-cog-$envName --service-name $appName-srch-$envName --resource-group $rgName
+// --------------------------------------------------------------------------------------------------------------
 param name string = ''
 param location string = resourceGroup().location
 param tags object = {}

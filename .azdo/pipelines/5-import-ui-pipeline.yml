@@ -204,6 +204,7 @@ jobs:
   - task: AzureCLI@2
     displayName: Import into ACR
     condition: ${{ variables.importIntoAcr }}
+    failOnStderr: true # Fail the task if az command has output that is sent to Stderr
     inputs:
       AzureSubscription: $(serviceConnectionName)
       scriptType: bash
@@ -244,7 +245,7 @@ jobs:
   - task: AzureCLI@2
     displayName: Update UI CA Image
     condition: ${{ or(variables.deployFromAcr, variables.deployPublicImage) }}
-    continueOnError: true
+    failOnStderr: true # Fail the task if az command has output that is sent to Stderr
     inputs:
       AzureSubscription: $(serviceConnectionName)
       scriptType: bash

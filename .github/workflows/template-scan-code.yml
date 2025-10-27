@@ -63,7 +63,7 @@ jobs:
 
       - name: Upload MS SecDevOps alerts to Workflow Artifacts
         if: inputs.runSecurityScan
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: alerts
           path: ${{ steps.msdo.outputs.sarifFile }}

@@ -90,7 +90,7 @@ jobs:
         run: npx playwright test ${{ inputs.testPath }} --config ${{ env.configFileName }}
 
       - name: Save Test Results Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: always()
         with:
           name: playwright-report

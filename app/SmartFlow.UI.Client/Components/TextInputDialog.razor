@@ -1,0 +1,103 @@
+@using MudBlazor
+
+<MudDialog>
+    <DialogContent>
+        <MudText>@ContentText</MudText>
+        <MudTextField @bind-Value="InputValue" 
+                     Label="@Label" 
+                     Variant="Variant.Outlined" 
+                     Margin="Margin.Dense"
+                     Class="mt-4"
+                     AutoFocus="true"
+                     OnKeyDown="HandleKeyDown"
+                     HelperText="@HelperText"
+                     Counter="@MaxLength"
+                     MaxLength="@MaxLength"
+                     Validation="@ValidationFunc"
+                     @ref="_textField" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@CancelText</MudButton>
+        <MudButton Color="@ButtonColor" Variant="Variant.Filled" OnClick="Submit" Disabled="@(!IsValidInput())">@ButtonText</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private MudTextField<string>? _textField;
+
+    [CascadingParameter] 
+    public required IMudDialogInstance Dialog { get; set; }
+
+    [Parameter]
+    public string ContentText { get; set; } = "";
+
+    [Parameter]
+    public string Label { get; set; } = "Name";
+
+    [Parameter]
+    public string ButtonText { get; set; } = "OK";
+
+    [Parameter]
+    public string CancelText { get; set; } = "Cancel";
+
+    [Parameter]
+    public Color ButtonColor { get; set; } = Color.Primary;
+
+    [Parameter]
+    public string InitialValue { get; set; } = "";
+
+    [Parameter]
+    public string HelperText { get; set; } = "";
+
+    [Parameter]
+    public int MaxLength { get; set; } = 1024;
+
+    [Parameter]
+    public Func<string, string?>? ValidationFunc { get; set; }
+
+    public string InputValue { get; set; } = "";
+
+    protected override void OnInitialized()
+    {
+        InputValue = InitialValue;
+    }
+
+    private bool IsValidInput()
+    {
+        if (string.IsNullOrWhiteSpace(InputValue))
+            return false;
+
+        if (ValidationFunc != null)
+        {
+            var validationResult = ValidationFunc(InputValue);
+            return string.IsNullOrEmpty(validationResult);
+        }
+
+        return true;
+    }
+
+    private void Submit()
+    {
+        if (IsValidInput())
+        {
+            Dialog.Close(DialogResult.Ok(InputValue));
+        }
+    }
+
+    private void Cancel()
+    {
+        Dialog.Cancel();
+    }
+
+    private void HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && IsValidInput())
+        {
+            Submit();
+        }
+        else if (e.Key == "Escape")
+        {
+            Cancel();
+        }
+    }
+}

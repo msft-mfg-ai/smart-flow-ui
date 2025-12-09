@@ -10,12 +10,8 @@ using MinimalApi.Services.HealthChecks;
 using System.ClientModel.Primitives;
 using Microsoft.Extensions.Azure;
 using MinimalApi.Agents;
-using Azure.AI.Agents.Persistent;
-using Microsoft.SemanticKernel.Agents.AzureAI;
 
 namespace MinimalApi.Extensions;
-
-#pragma warning disable SKEXP0110
 
 internal static class ServiceCollectionExtensions
 {
@@ -36,13 +32,6 @@ internal static class ServiceCollectionExtensions
         // Register OpenAI and Search clients - use keys if provided, otherwise use credential
         RegisterOpenAIServices(services, configuration, azureCredential);
         RegisterSearchServices(services, configuration, azureCredential);
-
-        // Register PersistentAgentsClient if endpoint is configured
-        if (!string.IsNullOrEmpty(configuration.AzureAIFoundryProjectEndpoint))
-        {
-            services.AddSingleton<PersistentAgentsClient>(sp =>
-                AzureAIAgent.CreateAgentsClient(configuration.AzureAIFoundryProjectEndpoint, azureCredential));
-        }
 
         RegisterDomainServices(services, configuration);
 
@@ -67,12 +56,21 @@ internal static class ServiceCollectionExtensions
 
     private static void RegisterBlobServices(IServiceCollection services, AppConfiguration configuration, TokenCredential azureCredential)
     {
-        services.AddSingleton<BlobServiceClient>(sp =>
+        // Prefer connection string if provided, otherwise use endpoint with credential
+        if (!string.IsNullOrEmpty(configuration.AzureStorageAccountConnectionString))
         {
-            var endpoint = configuration.AzureStorageAccountEndpoint;
-            ArgumentNullException.ThrowIfNullOrEmpty(endpoint);
-            return new BlobServiceClient(new Uri(endpoint), azureCredential);
-        });
+            services.AddSingleton<BlobServiceClient>(sp =>
+            {
+                return new BlobServiceClient(configuration.AzureStorageAccountConnectionString);
+            });
+        }
+        else if (!string.IsNullOrEmpty(configuration.AzureStorageAccountEndpoint))
+        {
+            services.AddSingleton<BlobServiceClient>(sp =>
+            {
+                return new BlobServiceClient(new Uri(configuration.AzureStorageAccountEndpoint), azureCredential);
+            });
+        }
 
         services.AddSingleton<BlobContainerClient>(sp =>
         {
@@ -117,7 +115,8 @@ internal static class ServiceCollectionExtensions
                 keyCredential,
                 tokenCredential,
                 sp.GetRequiredService<IHttpClientFactory>(),
-                sp.GetRequiredService<SearchClientFactory>());
+                sp.GetRequiredService<SearchClientFactory>(),
+                configuration.AzureAIGatewayAPIMKey);
         });
     }
 
@@ -150,14 +149,34 @@ internal static class ServiceCollectionExtensions
 
         services.AddSingleton<DocumentService>();
 
+        // Register both agent management service implementations
         services.AddSingleton<AzureAIAgentManagementService>();
+        services.AddSingleton<CustomEndpointAgentManagementService>();
+        
+        // Register the factory
+        services.AddSingleton<AgentManagementServiceFactory>();
+        
+        // Register IAgentManagementService using the factory
+        services.AddSingleton<IAgentManagementService>(sp =>
+        {
+            var factory = sp.GetRequiredService<AgentManagementServiceFactory>();
+            return factory.CreateAgentManagementService();
+        });
+
+        // Only register Azure AI Foundry-dependent services if endpoint is configured
+        if (!string.IsNullOrEmpty(configuration.AzureAIFoundryProjectEndpoint))
+        {
+            services.AddSingleton<AzureAIAgentChatService>();
+        }
+        
+        services.AddSingleton<ProjectService>();
+        services.AddSingleton<AzureSearchService>();
         services.AddSingleton<ImageGenerationChatAgent>();
         services.AddSingleton<TextToImageService>();
         services.AddSingleton<ChatService>();
         // Register ChatService as the default IChatService implementation for M365 integration
         services.AddSingleton<IChatService>(sp => sp.GetRequiredService<ChatService>());
         services.AddSingleton<RAGChatService>();
-        services.AddSingleton<AzureAIAgentChatService>();
         services.AddSingleton<EndpointChatService>();
         services.AddSingleton<EndpointChatServiceV2>();
         services.AddSingleton<EndpointTaskService>();

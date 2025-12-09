@@ -1,5 +1,6 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
 using MinimalApi.Agents;
+using Microsoft.AspNetCore.Mvc;
 
 namespace MinimalApi.Extensions;
 
@@ -24,7 +25,7 @@ internal static class WebApiChatExtensions
         return app;
     }
 
-    private static async Task<ApproachResponse> OnPostChatAsync(HttpContext context, ChatRequest request, ChatService chatService, RAGChatService ragChatService, IChatHistoryService chatHistoryService, EndpointChatService endpointChatService, EndpointChatServiceV2 endpointChatServiceV2, EndpointTaskService endpointTaskService, AzureAIAgentChatService azureAIAgentChatService, ImageGenerationChatAgent imageGenerationChatAgent, [EnumeratorCancellation] CancellationToken cancellationToken)
+    private static async Task<ApproachResponse> OnPostChatAsync(HttpContext context, ChatRequest request, ChatService chatService, RAGChatService ragChatService, IChatHistoryService chatHistoryService, EndpointChatService endpointChatService, EndpointChatServiceV2 endpointChatServiceV2, EndpointTaskService endpointTaskService, [FromServices] AzureAIAgentChatService? azureAIAgentChatService, ImageGenerationChatAgent imageGenerationChatAgent, [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         ApproachResponse response = null;
         var resultChunks = OnPostChatStreamingAsync(context, request, chatService, ragChatService, azureAIAgentChatService, chatHistoryService, endpointChatService, endpointChatServiceV2, endpointTaskService, imageGenerationChatAgent, cancellationToken);
@@ -39,7 +40,7 @@ internal static class WebApiChatExtensions
         return response;
     }
 
-    private static async IAsyncEnumerable<ChatChunkResponse> OnPostChatStreamingAsync(HttpContext context, ChatRequest request, ChatService chatService, RAGChatService ragChatService, AzureAIAgentChatService azureAIAgentChatService, IChatHistoryService chatHistoryService, EndpointChatService endpointChatService, EndpointChatServiceV2 endpointChatServiceV2, EndpointTaskService endpointTaskService, ImageGenerationChatAgent imageGenerationChatAgent, [EnumeratorCancellation] CancellationToken cancellationToken)
+    private static async IAsyncEnumerable<ChatChunkResponse> OnPostChatStreamingAsync(HttpContext context, ChatRequest request, ChatService chatService, RAGChatService ragChatService, [FromServices] AzureAIAgentChatService? azureAIAgentChatService, IChatHistoryService chatHistoryService, EndpointChatService endpointChatService, EndpointChatServiceV2 endpointChatServiceV2, EndpointTaskService endpointTaskService, ImageGenerationChatAgent imageGenerationChatAgent, [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         var profileService = context.RequestServices.GetRequiredService<ProfileService>();
         var profileInfo = await profileService.GetProfileDataAsync();
@@ -90,7 +91,7 @@ internal static class WebApiChatExtensions
         EndpointChatService endpointChatService,
         EndpointChatServiceV2 endpointChatServiceV2,
         EndpointTaskService endpointTaskService,
-        AzureAIAgentChatService azureAIAgentChatService,
+        [FromServices] AzureAIAgentChatService? azureAIAgentChatService,
         ImageGenerationChatAgent imageGenerationChatAgent,
         ProfileService profileService)
     {
@@ -109,7 +110,11 @@ internal static class WebApiChatExtensions
             return endpointTaskService;
 
         if (request.OptionFlags.IsAzureAIAgentChatProfile(profileInfo.Profiles))
+        {
+            if (azureAIAgentChatService == null)
+                throw new InvalidOperationException("AzureAIAgentChatService is not configured. Please set AzureAIFoundryProjectEndpoint in configuration.");
             return azureAIAgentChatService;
+        }
 
         if (request.OptionFlags.IsImangeChatProfile(profileInfo.Profiles))
             return imageGenerationChatAgent;

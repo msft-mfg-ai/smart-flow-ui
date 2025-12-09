@@ -1,27 +1,25 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
 
-using Microsoft.SemanticKernel.ChatCompletion;
-using Microsoft.SemanticKernel.Connectors.OpenAI;
-using Microsoft.SemanticKernel.TextToImage;
+using Microsoft.Extensions.AI;
 using MinimalApi.Services.Profile.Prompts;
-using System.Runtime.CompilerServices; // Required for EnumeratorCancellation
-using System.Text.RegularExpressions; // Required for Regex
-using System.Text;
+using System.Text.RegularExpressions;
 using Shared.Models;
 
 namespace MinimalApi.Agents;
 
-#pragma warning disable SKEXP0001
+/// <summary>
+/// Image Generation Chat Agent using Microsoft Agent Framework
+/// </summary>
 internal sealed class ImageGenerationChatAgent : IChatService
 {
-    private readonly ILogger<RAGChatService> _logger;
+    private readonly ILogger<ImageGenerationChatAgent> _logger;
     private readonly IConfiguration _configuration;
     private readonly OpenAIClientFacade _openAIClientFacade;
     private readonly TextToImageService _textToImageService;
 
     public ImageGenerationChatAgent(OpenAIClientFacade openAIClientFacade,
                                     TextToImageService textToImageService,
-                                    ILogger<RAGChatService> logger,
+                                    ILogger<ImageGenerationChatAgent> logger,
                                     IConfiguration configuration)
     {
         _openAIClientFacade = openAIClientFacade;
@@ -127,9 +125,7 @@ internal sealed class ImageGenerationChatAgent : IChatService
         _logger.LogInformation("Attempting to edit previous image using URL: {ImageUrl} with prompt: {Prompt}", imageUrl, prompt);
         try
         {
-            // Pass cancellationToken if EditImageFromDataUrlAsync supports it, otherwise remove.
-            // Assuming EditImageFromDataUrlAsync does not take a CancellationToken based on previous context.
-            string? editedImageUrl = await _textToImageService.EditImageFromDataUrlAsync(imageUrl, prompt); // Default size, n, quality
+            string? editedImageUrl = await _textToImageService.EditImageFromDataUrlAsync(imageUrl, prompt);
             if (!string.IsNullOrEmpty(editedImageUrl))
             {
                 _logger.LogInformation("Successfully edited image. New URL: {EditedImageUrl}", editedImageUrl);
@@ -164,9 +160,8 @@ internal sealed class ImageGenerationChatAgent : IChatService
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Error generating new image");
             return null;
         }
     }
 }
-
-#pragma warning restore SKEXP0001

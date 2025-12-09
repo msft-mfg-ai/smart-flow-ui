@@ -1,0 +1,91 @@
+@using global::Shared.Models
+
+@if (Items != null && Items.Any())
+{
+    <MudList T="string" Dense="true">
+        @foreach (var folder in Items)
+        {
+            <MudListItem T="string" @onclick="@(() => HandleFolderClick(folder))" 
+                        Icon="@(folder.IsExpanded ? Icons.Material.Filled.FolderOpen : Icons.Material.Filled.Folder)"
+                        IconColor="Color.Warning"
+                        @key="folder.Path">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                    @if (folder.Children.Any())
+                    {
+                        <MudIconButton Icon="@(folder.IsExpanded ? Icons.Material.Filled.ExpandMore : Icons.Material.Filled.ChevronRight)" 
+                                      Size="Size.Small"
+                                      OnClick="@(() => ToggleExpand(folder))"
+                                      OnClick:stopPropagation="true" />
+                    }
+                    else
+                    {
+                        <div style="width: 40px;"></div>
+                    }
+                    <MudText Typo="Typo.body2" Style="@GetSelectedStyle(folder)">@folder.Name</MudText>
+                    @if (IsSelected(folder) && ShowFolderActions)
+                    {
+                        <MudIconButton Icon="@Icons.Material.Filled.Upload" 
+                                      Color="Color.Primary"
+                                      Size="Size.Small" 
+                                      OnClick="@(() => OnUploadDocuments.InvokeAsync(folder))"
+                                      OnClick:stopPropagation="true"
+                                      Title="Upload documents" />
+                    }
+                </MudStack>
+            </MudListItem>
+            @if (folder.IsExpanded && folder.Children.Any())
+            {
+                <div style="padding-left: 40px;">
+                    <FolderTreeView Items="@folder.Children" 
+                                   SelectedNode="@SelectedNode"
+                                   OnFolderSelected="@OnFolderSelected"
+                                   OnUploadDocuments="@OnUploadDocuments"
+                                   OnDeleteFolder="@OnDeleteFolder"
+                                   ShowFolderActions="@ShowFolderActions" />
+                </div>
+            }
+        }
+    </MudList>
+}
+
+@code {
+    [Parameter]
+    public List<global::Shared.Models.FolderNode> Items { get; set; } = new();
+
+    [Parameter]
+    public global::Shared.Models.FolderNode? SelectedNode { get; set; }
+
+    [Parameter]
+    public EventCallback<global::Shared.Models.FolderNode> OnFolderSelected { get; set; }
+
+    [Parameter]
+    public EventCallback<global::Shared.Models.FolderNode> OnUploadDocuments { get; set; }
+
+    [Parameter]
+    public EventCallback<global::Shared.Models.FolderNode> OnDeleteFolder { get; set; }
+
+    [Parameter]
+    public bool ShowFolderActions { get; set; } = true;
+
+    private async Task HandleFolderClick(global::Shared.Models.FolderNode folder)
+    {
+        SelectedNode = folder;
+        await OnFolderSelected.InvokeAsync(folder);
+    }
+
+    private void ToggleExpand(global::Shared.Models.FolderNode folder)
+    {
+        folder.IsExpanded = !folder.IsExpanded;
+        StateHasChanged();
+    }
+
+    private bool IsSelected(global::Shared.Models.FolderNode folder)
+    {
+        return SelectedNode != null && SelectedNode.Path == folder.Path;
+    }
+
+    private string GetSelectedStyle(global::Shared.Models.FolderNode folder)
+    {
+        return IsSelected(folder) ? "font-weight: bold; color: var(--mud-palette-primary);" : "";
+    }
+}

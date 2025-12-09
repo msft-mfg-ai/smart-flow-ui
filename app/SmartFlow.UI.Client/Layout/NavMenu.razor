@@ -1,0 +1,77 @@
+<MudNavMenu Rounded="true" Margin=Margin.Normal Class="pa-2" Color=Color.Primary>
+
+    @if (IsPathEnabled("chat"))
+    {
+        <MudNavLink Href="" aria-label="Chat navigation option." Icon="@Icons.Material.Filled.QuestionAnswer" Match="NavLinkMatch.All">Chat</MudNavLink>
+    }
+    
+@*     <MudNavLink Href="voicechat" aria-label="Voice Chat with AI Agent." Icon="@Icons.Material.Filled.RecordVoiceOver">Voice Chat</MudNavLink> *@
+    
+    @if (IsPathEnabled("documents") && _user != null && _user.Profiles.Where(p => p.Approach == ProfileApproach.UserDocumentChat).Any())
+    {
+        <MudNavLink Href="documents" aria-label="View user documents." Icon="@Icons.Material.Filled.FileUpload">Documents</MudNavLink>
+    }
+
+    @if (IsPathEnabled("collections") )
+    {
+        <MudNavLink Href="collections" aria-label="View document collections." Icon="@Icons.Material.Filled.FileUpload">Collections</MudNavLink>
+    }
+
+    @if (IsPathEnabled("collection-indexes"))
+    {
+        <MudNavLink Href="collection-indexes" aria-label="Manage collection indexes." Icon="@Icons.Material.Filled.Storage">Collection Indexes</MudNavLink>
+    }
+
+    @if (IsPathEnabled("projects") )
+    {
+        <MudNavLink Href="projects" aria-label="View projects." Icon="@Icons.Material.Filled.FolderSpecial">Projects</MudNavLink>
+    }
+
+    @if (IsPathEnabled("agent-management"))
+    {
+        <MudNavLink Href="agent-management" aria-label="Manage AI agents." Icon="@Icons.Material.Filled.SmartToy">Agent Management</MudNavLink>
+    }
+
+    @if (IsPathEnabled("history"))
+    {
+        <MudNavLink Href="history" aria-label="View chat history." Icon="@Icons.Material.Filled.List">History</MudNavLink>
+    }
+
+    @* TODO: Add to user profile. Only Admin users should see settings *@
+    @* 	<MudNavLink Href="settings" aria-label="Settings Page" Icon="@Icons.Material.Filled.Settings">Settings</MudNavLink> *@
+
+</MudNavMenu>
+
+@code {
+    private UserInformation? _user;
+    private UIConfiguration? _config;
+    private HashSet<string> _enabledPaths = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _user = await ApiClient.GetUserAsync();
+        _config = await UIConfigService.LoadConfigurationAsync();
+        
+        // Parse enabled navigation paths
+        if (_config?.EnabledNavigationPaths != null)
+        {
+            var paths = _config.EnabledNavigationPaths
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Select(p => p.ToLowerInvariant());
+            _enabledPaths = new HashSet<string>(paths);
+        }
+        else
+        {
+            // Default to just chat if not configured
+            _enabledPaths = new HashSet<string> { "chat" };
+        }
+    }
+
+    private bool IsPathEnabled(string path)
+    {
+        return _enabledPaths.Contains(path.ToLowerInvariant());
+    }
+
+    [Inject] public required ApiClient ApiClient { get; set; }
+    [Inject] public required UIConfigurationService UIConfigService { get; set; }
+}

@@ -62,4 +62,11 @@ public class UIConfiguration
     /// </summary>
     [JsonPropertyName("disclaimerMessage")]
     public string DisclaimerMessage { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Comma-delimited list of enabled navigation paths (e.g., "chat,documents,history")
+    /// If empty or null, defaults to "chat" only
+    /// </summary>
+    [JsonPropertyName("enabledNavigationPaths")]
+    public string? EnabledNavigationPaths { get; set; }
 }

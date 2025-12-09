@@ -1,0 +1,302 @@
+@page "/collection-indexes"
+
+<PageTitle>Collection Index Management</PageTitle>
+
+<MudGrid>
+    <!-- Header Section -->
+    <MudItem xs="12">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3" Class="mb-4">
+            <MudText Typo="Typo.h5">Collection Index Management</MudText>
+            <MudSpacer />
+            
+            @if (_isLoadingIndexes)
+            {
+                <MudProgressCircular Indeterminate="true" Size="Size.Small" />
+                <MudText>Loading indexes...</MudText>
+            }
+            else if (_indexes.Any())
+            {
+                <MudChip T="string" Size="Size.Small" Color="Color.Primary">
+                    @_indexes.Count index@(_indexes.Count != 1 ? "es" : "")
+                </MudChip>
+            }
+            
+            <MudIconButton Icon="@Icons.Material.Filled.Refresh" 
+                           OnClick="LoadDataAsync" 
+                           Size="Size.Medium"
+                           Color="Color.Primary"
+                           Title="Refresh data" />
+        </MudStack>
+    </MudItem>
+
+    <!-- Search/Filter Section -->
+    <MudItem xs="12">
+        <MudTextField @bind-Value="_indexFilter" 
+                      Placeholder="Search indexes..." 
+                      Adornment="Adornment.Start"
+                      AdornmentIcon="@Icons.Material.Filled.Search" 
+                      IconSize="Size.Medium"
+                      Margin="Margin.Dense"
+                      Immediate="true"
+                      DebounceInterval="300"
+                      Variant="Variant.Outlined"
+                      Style="max-width: 500px;">
+        </MudTextField>
+    </MudItem>
+
+    <!-- Indexes List -->
+    <MudItem xs="12">
+        @if (!_indexes.Any() && !_isLoadingIndexes)
+        {
+            <MudAlert Severity="Severity.Info">
+                No Azure AI Search indexes found. Please configure your Azure Search Service endpoint and key in the application settings.
+            </MudAlert>
+        }
+        else if (_indexes.Any())
+        {
+            <MudGrid>
+                @foreach (var index in _filteredIndexes)
+                {
+                    <MudItem xs="12" md="6" lg="4">
+                        <MudCard Elevation="3" Class="mb-3">
+                            <MudCardHeader>
+                                <CardHeaderContent>
+                                    <MudStack Spacing="1">
+                                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                            <MudIcon Icon="@Icons.Material.Filled.Storage" Color="Color.Primary" />
+                                            <MudText Typo="Typo.h6">@index.Name</MudText>
+                                        </MudStack>
+                                        
+                                        @if (index.DocumentCount.HasValue || index.StorageSize.HasValue)
+                                        {
+                                            <MudStack Row="true" Spacing="2" Class="mt-2">
+                                                @if (index.DocumentCount.HasValue)
+                                                {
+                                                    <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Filled.Description" Color="Color.Info">
+                                                        @index.DocumentCount.Value.ToString("N0") docs
+                                                    </MudChip>
+                                                }
+                                                @if (index.StorageSize.HasValue)
+                                                {
+                                                    <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Filled.Cloud" Color="Color.Secondary">
+                                                        @FormatBytes(index.StorageSize.Value)
+                                                    </MudChip>
+                                                }
+                                            </MudStack>
+                                        }
+                                    </MudStack>
+                                </CardHeaderContent>
+                                <CardHeaderActions>
+                                    <MudIconButton Icon="@(_expandedIndexes.Contains(index.Name) ? Icons.Material.Filled.ExpandLess : Icons.Material.Filled.ExpandMore)" 
+                                                   Color="Color.Default"
+                                                   OnClick="@(async () => await ToggleIndexExpansionAsync(index.Name))" />
+                                </CardHeaderActions>
+                            </MudCardHeader>
+                            
+                            @if (_expandedIndexes.Contains(index.Name))
+                            {
+                                <MudCardContent>
+                                    @if (_loadingIndexDetails.Contains(index.Name))
+                                    {
+                                        <MudStack AlignItems="AlignItems.Center" Class="pa-4">
+                                            <MudProgressCircular Indeterminate="true" Size="Size.Small" />
+                                            <MudText Typo="Typo.body2">Loading schema...</MudText>
+                                        </MudStack>
+                                    }
+                                    else if (_indexDetails.TryGetValue(index.Name, out var details) && details != null)
+                                    {
+                                        <MudText Typo="Typo.subtitle2" Class="mb-2">
+                                            <MudIcon Icon="@Icons.Material.Filled.Schema" Size="Size.Small" Class="mr-1" />
+                                            Fields (@details.Fields.Count)
+                                        </MudText>
+                                        
+                                        <MudSimpleTable Dense="true" Hover="true" Style="max-height: 300px; overflow-y: auto;">
+                                            <thead>
+                                                <tr>
+                                                    <th>Field Name</th>
+                                                    <th>Type</th>
+                                                    <th>Attributes</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach (var field in details.Fields.OrderBy(f => f.Name))
+                                                {
+                                                    <tr>
+                                                        <td>
+                                                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                                                @if (field.IsKey)
+                                                                {
+                                                                    <MudIcon Icon="@Icons.Material.Filled.Key" Size="Size.Small" Color="Color.Warning" Title="Key Field" />
+                                                                }
+                                                                <MudText Typo="Typo.body2">@field.Name</MudText>
+                                                            </MudStack>
+                                                        </td>
+                                                        <td>
+                                                            <MudChip T="string" Size="Size.Small" Color="Color.Default">
+                                                                @field.Type
+                                                            </MudChip>
+                                                        </td>
+                                                        <td>
+                                                            <MudStack Row="true" Spacing="0">
+                                                                @if (field.IsSearchable)
+                                                                {
+                                                                    <MudTooltip Text="Searchable">
+                                                                        <MudIcon Icon="@Icons.Material.Filled.Search" Size="Size.Small" Color="Color.Success" />
+                                                                    </MudTooltip>
+                                                                }
+                                                                @if (field.IsFilterable)
+                                                                {
+                                                                    <MudTooltip Text="Filterable">
+                                                                        <MudIcon Icon="@Icons.Material.Filled.FilterAlt" Size="Size.Small" Color="Color.Info" />
+                                                                    </MudTooltip>
+                                                                }
+                                                                @if (field.IsSortable)
+                                                                {
+                                                                    <MudTooltip Text="Sortable">
+                                                                        <MudIcon Icon="@Icons.Material.Filled.Sort" Size="Size.Small" Color="Color.Primary" />
+                                                                    </MudTooltip>
+                                                                }
+                                                                @if (field.IsFacetable)
+                                                                {
+                                                                    <MudTooltip Text="Facetable">
+                                                                        <MudIcon Icon="@Icons.Material.Filled.Category" Size="Size.Small" Color="Color.Secondary" />
+                                                                    </MudTooltip>
+                                                                }
+                                                            </MudStack>
+                                                        </td>
+                                                    </tr>
+                                                }
+                                            </tbody>
+                                        </MudSimpleTable>
+                                        
+                                        <!-- Associated Collections Section -->
+                                        <MudDivider Class="my-3" />
+                                        
+                                        <MudText Typo="Typo.subtitle2" Class="mb-2">
+                                            <MudIcon Icon="@Icons.Material.Filled.Collections" Size="Size.Small" Class="mr-1" />
+                                            Associated Collections (@GetAssociatedCollections(index.Name).Count())
+                                        </MudText>
+                                        
+                                        @if (GetAssociatedCollections(index.Name).Any())
+                                        {
+                                            <MudStack Spacing="1">
+                                                @foreach (var collection in GetAssociatedCollections(index.Name))
+                                                {
+                                                    <MudChip T="string" 
+                                                             Size="Size.Small" 
+                                                             Color="Color.Primary" 
+                                                             Icon="@Icons.Material.Filled.Folder"
+                                                             OnClose="@(async () => await RemoveIndexFromCollectionAsync(collection.Name))">
+                                                        @collection.Name
+                                                    </MudChip>
+                                                }
+                                            </MudStack>
+                                        }
+                                        else
+                                        {
+                                            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                                <em>No collections associated with this index</em>
+                                            </MudText>
+                                        }
+                                        
+                                        <!-- Add Collection Button -->
+                                        <MudButton StartIcon="@Icons.Material.Filled.Add"
+                                                   Color="Color.Primary"
+                                                   Variant="Variant.Text"
+                                                   Size="Size.Small"
+                                                   OnClick="@(async () => await ShowAssociateCollectionDialogAsync(index.Name))"
+                                                   Class="mt-2">
+                                            Associate Collection
+                                        </MudButton>
+                                    }
+                                </MudCardContent>
+                            }
+                        </MudCard>
+                    </MudItem>
+                }
+            </MudGrid>
+        }
+    </MudItem>
+
+    <!-- Collections with Index Associations Section -->
+    <MudItem xs="12" Class="mt-6">
+        <MudDivider />
+        <MudText Typo="Typo.h6" Class="mt-4 mb-3">
+            <MudIcon Icon="@Icons.Material.Filled.Link" Class="mr-2" />
+            Collection-Index Associations
+        </MudText>
+        
+        @if (_isLoadingCollections)
+        {
+            <MudProgressLinear Indeterminate="true" />
+        }
+        else if (_collections.Any(c => !string.IsNullOrEmpty(c.IndexName)))
+        {
+            <MudTable Items="@_collections.Where(c => !string.IsNullOrEmpty(c.IndexName))" 
+                      Dense="true" 
+                      Hover="true" 
+                      Bordered="true"
+                      Elevation="2">
+                <HeaderContent>
+                    <MudTh>Collection Name</MudTh>
+                    <MudTh>Type</MudTh>
+                    <MudTh>Associated Index</MudTh>
+                    <MudTh>Description</MudTh>
+                    <MudTh Style="text-align: center;">Actions</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Collection Name">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                            <MudIcon Icon="@Icons.Material.Filled.Folder" Size="Size.Small" Color="Color.Primary" />
+                            <MudText Typo="Typo.body2">@context.Name</MudText>
+                        </MudStack>
+                    </MudTd>
+                    <MudTd DataLabel="Type">
+                        @if (!string.IsNullOrWhiteSpace(context.Type))
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Info">@context.Type</MudChip>
+                        }
+                        else
+                        {
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">-</MudText>
+                        }
+                    </MudTd>
+                    <MudTd DataLabel="Index">
+                        <MudChip T="string" 
+                                 Size="Size.Small" 
+                                 Color="Color.Success" 
+                                 Icon="@Icons.Material.Filled.Storage">
+                            @context.IndexName
+                        </MudChip>
+                    </MudTd>
+                    <MudTd DataLabel="Description">
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">
+                            @(string.IsNullOrWhiteSpace(context.Description) ? "-" : context.Description)
+                        </MudText>
+                    </MudTd>
+                    <MudTd DataLabel="Actions" Style="text-align: center;">
+                        <MudTooltip Text="Remove index association">
+                            <MudIconButton Icon="@Icons.Material.Filled.LinkOff"
+                                           Color="Color.Error"
+                                           Size="Size.Small"
+                                           OnClick="@(async () => await RemoveIndexFromCollectionAsync(context.Name))" />
+                        </MudTooltip>
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
+        else
+        {
+            <MudAlert Severity="Severity.Info">
+                No collections have index associations. Use the "Associate Collection" button on an index card above to create associations.
+            </MudAlert>
+        }
+    </MudItem>
+</MudGrid>
+
+<style>
+    .index-card-hover:hover {
+        transform: translateY(-2px);
+        transition: transform 0.2s ease-in-out;
+    }
+</style>

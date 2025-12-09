@@ -1,24 +1,42 @@
-<MudGrid Justify="Justify.Center" Spacing="2">
-    <MudItem xs="0" sm="0" md="0" lg="12" Class="d-flex">
-        <MudIcon Icon="@Icons.Material.Filled.AutoAwesome" Class="icon-huge ma-auto" Color="Color.Primary" />
-    </MudItem>
-    <MudItem xs="12" Class="mb-2">
-        <MudText Typo="Typo.h3" Align="Align.Center">@Message</MudText>
-    </MudItem>
-    @if (Profile != null)
+<MudStack AlignItems="AlignItems.Center" Justify="Justify.Center" Spacing="6" Style="padding: 2rem;">
+    <!-- Icon and Message Section -->
+    <MudStack AlignItems="AlignItems.Center" Spacing="3">
+        <MudAvatar Size="Size.Large" Color="Color.Primary" Style="width: 80px; height: 80px;">
+            <MudIcon Icon="@Icons.Material.Filled.AutoAwesome" Size="Size.Large" Style="font-size: 3rem;" />
+        </MudAvatar>
+        <MudText Typo="Typo.h4" Align="Align.Center" Style="font-weight: 400; color: #5f6368;">
+            @Message
+        </MudText>
+    </MudStack>
+
+    <!-- Example Cards Section -->
+    @if (Profile != null && Profile.SampleQuestions != null)
     {
-        @if (Profile.SampleQuestions != null)
-        {
+        <MudGrid Justify="Justify.Center" Spacing="3" Style="max-width: 900px; width: 100%;">
             @foreach (var question in Profile.SampleQuestions)
             {
-                <MudItem lg="3" xs="12">
-                    <MudPaper Elevation="4" Height="10rem" onclick="@(async () => await OnClickedAsync(question))" Class="d-flex ma-2 pa-4 clickable flex-column align-center justify-center mud-width-full rounded dim">
-                        <MudText Typo="Typo.body1">
-                            @question
-                        </MudText>
+                <MudItem xs="12" sm="6" md="6" Style="display: flex;">
+                    <MudPaper Elevation="0" 
+                              Class="example-card" 
+                              Style="cursor: pointer; border: 1px solid #e0e0e0; border-radius: 12px; padding: 1.5rem; transition: all 0.3s ease; background-color: #f8f9fa; display: flex; flex-direction: column; width: 100%;"
+                              @onclick="@(async () => await OnClickedAsync(question))">
+                        <MudStack Spacing="2" Style="height: 100%;">
+                            <MudIcon Icon="@Icons.Material.Filled.ChatBubbleOutline" Color="Color.Primary" Size="Size.Medium" />
+                            <MudText Typo="Typo.body1" Style="color: #3c4043; line-height: 1.5; flex-grow: 1;">
+                                @question
+                            </MudText>
+                        </MudStack>
                     </MudPaper>
                 </MudItem>
             }
-        }
+        </MudGrid>
     }
-</MudGrid>
+</MudStack>
+
+<style>
+    .example-card:hover {
+        box-shadow: 0 4px 8px rgba(0,0,0,0.12);
+        transform: translateY(-2px);
+        border-color: #1976d2;
+    }
+</style>

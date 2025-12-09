@@ -1,327 +1,462 @@
 @page "/collections"
+@using global::Shared.Models
 
-<PageTitle>Collections</PageTitle>
+<PageTitle>Collection Management</PageTitle>
 
-<MudGrid>
-    <MudItem xs="12">
-        <MudCard>
-            <MudCardHeader>
-                <CardHeaderContent>
-                    <MudText Typo="Typo.h6">Manage Collections</MudText>
-                </CardHeaderContent>
-                <CardHeaderActions>
-                    @if (!_showCreateCollectionForm)
-                    {
-                        <MudButton StartIcon="@Icons.Material.Filled.Add" 
-                                   Color="Color.Primary" 
-                                   Variant="Variant.Filled"
-                                   OnClick="ShowCreateCollectionForm">
-                            Create Collection
-                        </MudButton>
-                    }
-                </CardHeaderActions>
-            </MudCardHeader>
-            <MudCardContent>
-                @if (_showCreateCollectionForm)
-                {
-                    <!-- Create Collection Form -->
-                    <MudPaper Elevation="2" Class="pa-4 mb-4">
-                        <MudText Typo="Typo.h6" Class="mb-3">
-                            <MudIcon Icon="@Icons.Material.Filled.CreateNewFolder" Class="mr-2" />
-                            Create New Collection
-                        </MudText>
-                        <MudForm @ref="_createCollectionForm" @bind-IsValid="_createCollectionFormValid">
-                            <MudTextField @bind-Value="_newCollectionName" 
-                                          Label="Collection Name" 
-                                          Variant="Variant.Outlined"
-                                          Required="true"
-                                          RequiredError="Collection name is required"
-                                          Validation="@(new Func<string, string>(ValidateCollectionName))"
-                                          Immediate="true"
-                                          HelperText="Enter a unique name for the collection. Use lowercase letters, numbers, and hyphens only."
-                                          Class="mb-3" />
-                        </MudForm>
-                        <MudStack Row="true" Spacing="2" Class="mt-4">
-                            <MudButton OnClick="CancelCreateCollection" 
-                                       Variant="Variant.Text"
-                                       StartIcon="@Icons.Material.Filled.Cancel">
-                                Cancel
-                            </MudButton>
-                            <MudButton Color="Color.Primary" 
-                                       Variant="Variant.Filled" 
-                                       OnClick="CreateCollectionAsync"
-                                       StartIcon="@Icons.Material.Filled.Check"
-                                       Disabled="@(!_createCollectionFormValid || string.IsNullOrWhiteSpace(_newCollectionName))">
-                                Create Collection
-                            </MudButton>
-                        </MudStack>
-                    </MudPaper>
-                }
-
-                @if (_isLoadingCollections)
-                {
-                    <MudProgressCircular Indeterminate="true" />
-                    <MudText Class="ml-2">Loading collections...</MudText>
-                }
-                else if (_collections.Any())
-                {
-                    <MudMenu Label="@(_selectedCollection ?? "Select Collection")" Color="Color.Primary" FullWidth="true">
-                        <ActivatorContent>
-                            <MudButton Color="Color.Primary" 
-                                       Variant="Variant.Outlined" 
-                                       StartIcon="@Icons.Material.Filled.Folder" 
-                                       EndIcon="@Icons.Material.Filled.KeyboardArrowDown"
-                                       FullWidth="true">
-                                @(_selectedCollection ?? "Select Collection")
-                            </MudButton>
-                        </ActivatorContent>
-                        <ChildContent>
-                            @foreach (var collection in _collections)
-                            {
-                                <MudMenuItem OnClick="@(async () => await SelectCollectionAsync(collection))">
-                                    @collection
-                                </MudMenuItem>
-                            }
-                        </ChildContent>
-                    </MudMenu>
-                }
-                else if (!_showCreateCollectionForm)
-                {
-                    <MudAlert Severity="Severity.Info">No collections found. Create your first collection to get started.</MudAlert>
-                }
-            </MudCardContent>
-        </MudCard>
-    </MudItem>
-</MudGrid>
-
-@if (!string.IsNullOrEmpty(_selectedCollection))
-{
-    <br />
-
-    <MudGrid>
-        <!-- Upload Section - Only visible when _showUploadSection is true -->
-        @if (_showUploadSection)
+<MudContainer MaxWidth="MaxWidth.Large" Class="pt-2 pb-6">
+    <!-- Header Section -->
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3" Class="mb-4">
+        <MudText Typo="Typo.h5">Collection Management</MudText>
+        <MudSpacer />
+        
+        @if (_isLoadingCollections)
         {
-            <MudItem xs="12">
-                <MudCard>
-                    <MudCardHeader>
-                        <CardHeaderContent>
-                            <MudStack Row="true" AlignItems="AlignItems.Center">
-                                <MudIcon Icon="@Icons.Material.Filled.CloudUpload" />
-                                <MudText Typo="Typo.h6">Upload Documents to @_selectedCollection</MudText>
-                            </MudStack>
-                        </CardHeaderContent>
-                        <CardHeaderActions>
-                            <MudIconButton Icon="@Icons.Material.Filled.Close" 
-                                           OnClick="@(() => _showUploadSection = false)"
-                                           Title="Close upload section" />
-                        </CardHeaderActions>
-                    </MudCardHeader>
-                    
-                    <MudCardContent>
-                        <MudFileUpload T="IReadOnlyList<IBrowserFile>" 
-                                       Accept=".pdf,.png,.jpg,.jpeg" 
-                                       MaximumFileCount="10" 
-                                       FilesChanged="UploadFiles" 
-                                       Required="true" 
-                                       RequiredError="You must select at least one file to upload.">
-                            <ActivatorContent>
-                                <MudButton HtmlTag="label"
-                                           Variant="Variant.Filled"
-                                           Color="Color.Primary"
-                                           StartIcon="@Icons.Material.Filled.FileOpen"
-                                           Size="Size.Large">
-                                    Select Files
-                                </MudButton>
-                            </ActivatorContent>
-                        </MudFileUpload>
-
-                        @if (_fileUploads.Any())
-                        {
-                            <MudPaper Elevation="0" Class="mt-4 pa-3" Style="border: 1px dashed var(--mud-palette-primary);">
-                                <MudStack Spacing="2">
-                                    <MudText Typo="Typo.subtitle2">
-                                        <MudIcon Icon="@Icons.Material.Filled.Info" Size="Size.Small" Class="mr-2" />
-                                        @(_fileUploads.Count) file(s) selected - @(_fileUploads.Sum(f => f.Size).ToHumanReadableSize())
-                                    </MudText>
-                                    @foreach (var file in _fileUploads)
-                                    {
-                                        <MudChip T="string"
-                                                 Icon="@Icons.Material.Filled.InsertDriveFile" 
-                                                 OnClose="@(() => RemoveFile(file))"
-                                                 Text="@($"{file.Name} ({file.Size.ToHumanReadableSize()})")" />
-                                    }
-                                </MudStack>
-                            </MudPaper>
-                        }
-
-                        <MudText Typo="Typo.body2" Class="mt-3" Color="Color.Default">
-                            Maximum file size: @(MaxIndividualFileSize.ToHumanReadableSize()) | Accepted formats: PDF, PNG, JPG, JPEG
-                        </MudText>
-                    </MudCardContent>
-                    
-                    <MudCardActions>
-                        @if (_isUploadingDocuments)
-                        {
-                            <MudStack Row="true" AlignItems="AlignItems.Center" Class="ml-2">
-                                <MudProgressCircular Indeterminate="true" Size="Size.Small" />
-                                <MudText>Uploading documents...</MudText>
-                            </MudStack>
-                        }
-                        else
-                        {
-                            <MudButton StartIcon="@Icons.Material.Filled.Clear"
-                                       Variant="Variant.Text"
-                                       Color="Color.Default"
-                                       Disabled="@(!_fileUploads.Any())"
-                                       Class="ml-2"
-                                       OnClick="@(() => _fileUploads.Clear())">
-                                Clear All
-                            </MudButton>
-                            <MudButton StartIcon="@Icons.Material.Filled.Upload"
-                                       Variant="Variant.Filled"
-                                       Color="Color.Primary"
-                                       Disabled="@(!_fileUploads.Any())"
-                                       Class="ml-auto mr-2"
-                                       OnClick="@(async _ => await SubmitFilesForUploadAsync())">
-                                Upload @(_fileUploads.Count) File@(_fileUploads.Count != 1 ? "s" : "")
-                            </MudButton>
-                        }
-                    </MudCardActions>
-                </MudCard>
-            </MudItem>
+            <MudProgressCircular Indeterminate="true" Size="Size.Small" />
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Loading...</MudText>
         }
-
-        <!-- Collection Files Table -->
-        <MudItem xs="12">
-            <MudTable Items="@_collectionFiles" 
-                      Dense="true" 
-                      Hover="true" 
-                      Bordered="true" 
-                      FixedHeader="true" 
-                      Filter="OnFileFilter" 
-                      Elevation="4">
-                <ToolBarContent>
-                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-                        <MudIcon Icon="@Icons.Material.Filled.Folder" />
-                        @if (_isLoadingDocuments)
-                        {
-                            <MudText Typo="Typo.h6">Loading Files</MudText>
-                            <MudProgressCircular Indeterminate="true" Size="Size.Small" />
-                        }
-                        else
-                        {
-                            <MudText Typo="Typo.h6">@_selectedCollection</MudText>
-                            <MudChip T="string" Size="Size.Small" Color="Color.Primary">@_collectionFiles.Count file@(_collectionFiles.Count != 1 ? "s" : "")</MudChip>
-                            <MudIconButton Icon="@Icons.Material.Filled.Refresh" 
-                                          OnClick="RefreshAsync" 
-                                          Size="Size.Small"
-                                          Title="Refresh file list" />
-                        }
-                    </MudStack>
-                    <MudSpacer />
-                    <MudButton StartIcon="@Icons.Material.Filled.Upload"
-                               Color="Color.Primary"
-                               Variant="Variant.Filled"
-                               OnClick="@(() => _showUploadSection = true)"
-                               Class="mr-2">
-                        Upload Document
+        else if (_collections.Any())
+        {
+            @if (!string.IsNullOrEmpty(_selectedCollection))
+            {
+                <MudChip T="string" Size="Size.Small" Color="Color.Primary">
+                    @_collectionFiles.Count file@(_collectionFiles.Count != 1 ? "s" : "")
+                </MudChip>
+                
+                @if (_selectedCollectionInfo != null && !string.IsNullOrWhiteSpace(_selectedCollectionInfo.Type))
+                {
+                    <MudChip T="string" 
+                             Size="Size.Small" 
+                             Color="Color.Info" 
+                             Icon="@Icons.Material.Filled.Label"
+                             Style="text-transform: uppercase;">
+                        @_selectedCollectionInfo.Type
+                    </MudChip>
+                }
+            }
+            
+            <MudMenu Label="@(_selectedCollection ?? "Select Collection")" Color="Color.Primary">
+                <ActivatorContent>
+                    <MudButton Color="Color.Primary" 
+                               Variant="Variant.Outlined" 
+                               StartIcon="@Icons.Material.Filled.Folder" 
+                               EndIcon="@Icons.Material.Filled.KeyboardArrowDown">
+                        @(_selectedCollection ?? "Select Collection")
                     </MudButton>
-                    <MudTextField @bind-Value="@_filter" 
-                                  Placeholder="Search files" 
-                                  Adornment="Adornment.Start"
-                                  AdornmentIcon="@Icons.Material.Filled.Search" 
-                                  IconSize="Size.Medium"
-                                  Margin="Margin.Dense"
-                                  DebounceInterval="300">
-                    </MudTextField>
-                </ToolBarContent>
-                <HeaderContent>
-                    <MudTh>File Name</MudTh>
-                    <MudTh Style="width: 200px;">Processing Files</MudTh>
-                    <MudTh Style="text-align: center; width: 200px;">Actions</MudTh>
-                </HeaderContent>
-                <RowTemplate>
-                    <MudTd DataLabel="Name">
-                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
-                            @if (CanViewFile(context.FileName))
-                            {
-                                <MudTooltip Text="View file">
-                                    <MudIconButton Icon="@Icons.Material.Filled.Visibility"
-                                                   Color="Color.Info"
-                                                   Size="Size.Small"
-                                                   OnClick="@(async () => await ViewFileAsync(context.FileName, false))" />
-                                </MudTooltip>
-                            }
-                            <MudIcon Icon="@Icons.Material.Filled.InsertDriveFile" Size="Size.Small" />
-                            <MudText>@context.FileName</MudText>
-                        </MudStack>
-                    </MudTd>
-                    <MudTd DataLabel="Processing Files">
-                        @if (context.ProcessingFiles.Any())
-                        {
-                            <MudStack Spacing="1">
-                                @foreach (var processingFile in context.ProcessingFiles)
+                </ActivatorContent>
+                <ChildContent>
+                    @foreach (var collection in _collections)
+                    {
+                        <MudMenuItem OnClick="@(async () => await SelectCollectionAsync(collection.Name))">
+                            <MudStack Spacing="0">
+                                <MudText Typo="Typo.body1">@collection.Name</MudText>
+                                @if (!string.IsNullOrWhiteSpace(collection.Type))
                                 {
-                                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
-                                        <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Filled.Description">
-                                            @Path.GetFileName(processingFile)
-                                        </MudChip>
-                                        @if (CanViewFile(processingFile))
-                                        {
-                                            <MudTooltip Text="View file">
-                                                <MudIconButton Icon="@Icons.Material.Filled.Visibility"
-                                                               Color="Color.Info"
-                                                               Size="Size.Small"
-                                                               OnClick="@(async () => await ViewFileAsync(processingFile, true))" />
-                                            </MudTooltip>
-                                        }
-                                    </MudStack>
+                                    <MudText Typo="Typo.caption" Color="Color.Primary">Type: @collection.Type</MudText>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(collection.Description))
+                                {
+                                    <MudText Typo="Typo.caption" Color="Color.Default">@collection.Description</MudText>
                                 }
                             </MudStack>
-                        }
-                        else
-                        {
-                            <MudText Typo="Typo.body2" Color="Color.Default">
-                                <em>None</em>
-                            </MudText>
-                        }
-                    </MudTd>
-                    <MudTd DataLabel="Actions" Style="text-align: center;">
-                        <MudStack Row="true" Justify="Justify.Center" Spacing="1">
-                            @if (_processingFiles.Contains(context.FileName))
+                        </MudMenuItem>
+                    }
+                </ChildContent>
+            </MudMenu>
+        }
+        
+        <MudIconButton Icon="@Icons.Material.Filled.Add" 
+                       Color="Color.Primary" 
+                       Variant="Variant.Filled"
+                       OnClick="ShowCreateCollectionForm"
+                       title="Create Collection" />
+        
+        @if (!string.IsNullOrEmpty(_selectedCollection))
+        {
+            <MudIconButton Icon="@Icons.Material.Filled.Edit" 
+                           Color="Color.Default" 
+                           Variant="Variant.Filled"
+                           OnClick="ShowEditMetadataForm"
+                           title="Edit Collection Metadata" />
+        }
+    </MudStack>
+
+    <!-- Description Banner (if available) -->
+    @if (!string.IsNullOrEmpty(_selectedCollection) && _selectedCollectionInfo != null && !string.IsNullOrWhiteSpace(_selectedCollectionInfo.Description))
+    {
+        <MudAlert Severity="Severity.Info" Dense="true" Class="mb-4">
+            @_selectedCollectionInfo.Description
+        </MudAlert>
+    }
+
+    <!-- Create Collection Form -->
+    @if (_showCreateCollectionForm)
+    {
+        <MudCard Elevation="1" Class="mb-4 rounded-lg">
+            <MudCardContent Class="pa-6">
+                <MudStack Spacing="3">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                        <MudIcon Icon="@Icons.Material.Filled.CreateNewFolder" Color="Color.Primary" />
+                        <MudText Typo="Typo.h6">Create New Collection</MudText>
+                    </MudStack>
+                    
+                    <MudForm @ref="_createCollectionForm" @bind-IsValid="_createCollectionFormValid">
+                        <MudTextField @bind-Value="_newCollectionName" 
+                                      Label="Collection Name" 
+                                      Variant="Variant.Outlined"
+                                      Required="true"
+                                      RequiredError="Collection name is required"
+                                      Validation="@(new Func<string, string>(ValidateCollectionName))"
+                                      Immediate="true"
+                                      HelperText="Enter a unique name for the collection. Use lowercase letters, numbers, and hyphens only."
+                                      Class="mb-3" />
+                        
+                        <MudTextField @bind-Value="_newCollectionType" 
+                                      Label="Type (Optional)" 
+                                      Variant="Variant.Outlined"
+                                      HelperText="Specify the type or category of this collection (e.g., Documents, Images, Reports)"
+                                      Class="mb-3" />
+                        
+                        <MudSelect T="string" 
+                                   @bind-Value="_newCollectionIndexName" 
+                                   Label="Search Index (Optional)" 
+                                   Variant="Variant.Outlined"
+                                   Clearable="true"
+                                   HelperText="Associate this collection with an Azure AI Search index"
+                                   Class="mb-3">
+                            @foreach (var index in _availableIndexes.OrderBy(i => i.Name))
                             {
-                                <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+                                <MudSelectItem T="string" Value="@index.Name">@index.Name</MudSelectItem>
+                            }
+                        </MudSelect>
+                        
+                        <MudTextField @bind-Value="_newCollectionDescription" 
+                                      Label="Description (Optional)" 
+                                      Variant="Variant.Outlined"
+                                      Lines="3"
+                                      HelperText="Provide a brief description of what this collection contains"
+                                      Class="mb-3" />
+                    </MudForm>
+                    
+                    <MudStack Row="true" Spacing="2" Justify="Justify.FlexEnd">
+                        <MudButton OnClick="CancelCreateCollection" 
+                                   Variant="Variant.Text">
+                            Cancel
+                        </MudButton>
+                        <MudButton Color="Color.Primary" 
+                                   Variant="Variant.Filled" 
+                                   OnClick="CreateCollectionAsync"
+                                   Disabled="@(!_createCollectionFormValid || string.IsNullOrWhiteSpace(_newCollectionName))">
+                            Create Collection
+                        </MudButton>
+                    </MudStack>
+                </MudStack>
+            </MudCardContent>
+        </MudCard>
+    }
+
+    <!-- Edit Collection Metadata Form -->
+    @if (_showEditMetadataForm)
+    {
+        <MudCard Elevation="1" Class="mb-4 rounded-lg">
+            <MudCardContent Class="pa-6">
+                <MudStack Spacing="3">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                        <MudIcon Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" />
+                        <MudText Typo="Typo.h6">Edit Collection Metadata</MudText>
+                    </MudStack>
+                    
+                    <MudForm>
+                        <MudTextField @bind-Value="_editCollectionType" 
+                                      Label="Type (Optional)" 
+                                      Variant="Variant.Outlined"
+                                      HelperText="Specify the type or category of this collection"
+                                      Class="mb-3" />
+                        
+                        <MudSelect T="string" 
+                                   @bind-Value="_editCollectionIndexName" 
+                                   Label="Search Index (Optional)" 
+                                   Variant="Variant.Outlined"
+                                   Clearable="true"
+                                   HelperText="Associate this collection with an Azure AI Search index"
+                                   Class="mb-3">
+                            @foreach (var index in _availableIndexes.OrderBy(i => i.Name))
+                            {
+                                <MudSelectItem T="string" Value="@index.Name">@index.Name</MudSelectItem>
+                            }
+                        </MudSelect>
+                        
+                        <MudTextField @bind-Value="_editCollectionDescription" 
+                                      Label="Description (Optional)" 
+                                      Variant="Variant.Outlined"
+                                      Lines="3"
+                                      HelperText="Provide a brief description of what this collection contains"
+                                      Class="mb-3" />
+                    </MudForm>
+                    
+                    <MudStack Row="true" Spacing="2" Justify="Justify.FlexEnd">
+                        <MudButton OnClick="CancelEditMetadata" 
+                                   Variant="Variant.Text">
+                            Cancel
+                        </MudButton>
+                        <MudButton Color="Color.Primary" 
+                                   Variant="Variant.Filled" 
+                                   OnClick="UpdateCollectionMetadataAsync">
+                            Save Changes
+                        </MudButton>
+                    </MudStack>
+                </MudStack>
+            </MudCardContent>
+        </MudCard>
+    }
+
+    <!-- Upload Section -->
+    @if (_showUploadSection)
+    {
+        <FileUploadSection TargetName="@GetUploadTargetName()"
+                         MaxIndividualFileSize="MaxIndividualFileSize"
+                         SelectedFiles="_fileUploads"
+                         IsUploading="_isUploadingDocuments"
+                         FolderPath="@_currentFolderPath"
+                         OnClose="@(() => _showUploadSection = false)"
+                         OnUpload="SubmitFilesForUploadAsync" />
+    }
+
+    <!-- Push Indexing Status Panel -->
+    @if (_isPushIndexing && _pushIndexingStatus != null)
+    {
+        <MudAlert Severity="Severity.Info" Class="mb-4">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+                <MudProgressCircular Indeterminate="true" Size="Size.Small" Color="Color.Primary" />
+                <MudStack Spacing="0">
+                    <MudText Typo="Typo.body1" Style="font-weight: 500;">Push Indexing in Progress</MudText>
+                    <MudText Typo="Typo.body2">
+                        Status: @_pushIndexingStatus.Status | 
+                        Progress: @_pushIndexingStatus.ProgressCount / @(_pushIndexingStatus.TotalCount > 0 ? _pushIndexingStatus.TotalCount.ToString() : "calculating...")
+                    </MudText>
+                    @if (!string.IsNullOrEmpty(_pushIndexingCorrelationId))
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Tracking ID: @_pushIndexingCorrelationId</MudText>
+                    }
+                </MudStack>
+            </MudStack>
+        </MudAlert>
+    }
+
+    <!-- Empty State Messages -->
+    @if (!_collections.Any() && !_showCreateCollectionForm && !_isLoadingCollections)
+    {
+        <MudAlert Severity="Severity.Info">No collections found. Create your first collection to get started.</MudAlert>
+    }
+    else if (string.IsNullOrEmpty(_selectedCollection) && _collections.Any() && !_showCreateCollectionForm)
+    {
+        <MudAlert Severity="Severity.Info">
+            <MudText Typo="Typo.h6">Select a collection to continue</MudText>
+            <MudText>Choose a collection from the dropdown above to upload documents and view files.</MudText>
+        </MudAlert>
+    }
+
+    <!-- Collection Details -->
+    @if (!string.IsNullOrEmpty(_selectedCollection))
+    {
+        <MudCard Elevation="1" Class="rounded-lg">
+            <MudCardContent Class="pa-4">
+                <MudStack Spacing="3">
+                    <!-- Files Header with Search and Actions -->
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                            <MudText Typo="Typo.body1" Style="font-weight: 500;">
+                                @if (!string.IsNullOrEmpty(_currentFolderPath))
+                                {
+                                    <span>@_currentFolderPath</span>
+                                }
+                                else
+                                {
+                                    <span>@_selectedCollection</span>
+                                }
+                            </MudText>
+                            
+                            @if (!string.IsNullOrEmpty(_currentFolderPath))
+                            {
+                                <MudIconButton Icon="@Icons.Material.Filled.ArrowUpward" 
+                                              Size="Size.Small"
+                                              OnClick="NavigateToParentFolder"
+                                               title="Go to parent folder" />
+                            }
+                        </MudStack>
+                        
+                        <MudStack Row="true" Spacing="2">
+                            <MudTextField @bind-Value="@_filter" 
+                                          Placeholder="Search" 
+                                          Variant="Variant.Outlined"
+                                          Adornment="Adornment.Start"
+                                          AdornmentIcon="@Icons.Material.Filled.Search" 
+                                          Margin="Margin.Dense"
+                                          DebounceInterval="300"
+                                          Style="max-width: 300px;">
+                            </MudTextField>
+                            
+                            <MudIconButton Icon="@Icons.Material.Filled.Refresh" 
+                                          Size="Size.Small"
+                                          OnClick="RefreshAsync"
+                                           title="Refresh" />
+                            
+                            <MudIconButton Icon="@Icons.Material.Filled.CreateNewFolder" 
+                                          Color="Color.Primary" 
+                                          Size="Size.Small"
+                                          OnClick="@(() => ShowCreateFolderDialogAsync(_selectedFolder))"
+                                          title="New Folder" />
+                            
+                            <MudIconButton Icon="@Icons.Material.Filled.Upload"
+                                           Color="Color.Primary"
+                                           Size="Size.Small"
+                                           OnClick="@(() => _showUploadSection = true)"
+                                           title="Upload" />
+                            
+                            @if (_isPushIndexing)
+                            {
+                                <MudTooltip Text="@($"Indexing in progress... {(_pushIndexingStatus?.ProgressCount ?? 0)}/{(_pushIndexingStatus?.TotalCount ?? 0)} documents")">
+                                    <MudStack AlignItems="AlignItems.Center" Spacing="0">
+                                        <MudProgressCircular Indeterminate="true" Size="Size.Small" Color="Color.Primary" />
+                                        <MudText Typo="Typo.caption" Color="Color.Primary">Index</MudText>
+                                    </MudStack>
+                                </MudTooltip>
                             }
                             else
                             {
-                                <MudTooltip Text="Process document layout">
-                                    <MudIconButton Icon="@Icons.Material.Filled.AutoFixHigh"
-                                                   Color="Color.Primary"
-                                                   Size="Size.Small"
-                                                   OnClick="@(async () => await ProcessDocumentLayoutAsync(context.FileName))"
-                                                   Title="Process Layout" />
-                                </MudTooltip>
+                                <MudButton Variant="Variant.Text"
+                                           Color="Color.Primary"
+                                           Size="Size.Small"
+                                           StartIcon="@Icons.Material.Filled.CloudSync"
+                                           OnClick="ShowPushIndexingDialogAsync"
+                                           Style="flex-direction: column; min-width: auto; padding: 4px 8px;">
+                                    <MudText Typo="Typo.caption">Index</MudText>
+                                </MudButton>
                             }
                         </MudStack>
-                    </MudTd>
-                </RowTemplate>
-                <PagerContent>
-                    <MudTablePager PageSizeOptions="new int[] { 10, 25, 50, 100 }" />
-                </PagerContent>
-            </MudTable>
-        </MudItem>
-    </MudGrid>
-}
-else if (_collections.Any())
-{
-    <br />
-    <MudGrid>
-        <MudItem xs="12">
-            <MudAlert Severity="Severity.Info">
-                <MudText Typo="Typo.h6">Select a collection to continue</MudText>
-                <MudText>Choose a collection from the dropdown above to upload documents and view files.</MudText>
-            </MudAlert>
-        </MudItem>
-    </MudGrid>
+                    </MudStack>
+
+                    <MudDivider />
+
+                    <!-- Combined Folders and Files Table -->
+                    @if (!GetCombinedItems().Any())
+                    {
+                        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="py-4">
+                            No items found. Upload a file or create a folder to get started.
+                        </MudText>
+                    }
+                    else
+                    {
+                        <MudTable Items="@GetCombinedItems()" 
+                                  Dense="true" 
+                                  Hover="true" 
+                                  Bordered="false" 
+                                  FixedHeader="true" 
+                                  Elevation="0"
+                                  Style="cursor: pointer;">
+                            <HeaderContent>
+                                <MudTh>Name</MudTh>
+                                <MudTh>Last Modified</MudTh>
+                                <MudTh>Type</MudTh>
+                                <MudTh>Size</MudTh>
+                                <MudTh Style="text-align: center; width: 150px;">Actions</MudTh>
+                            </HeaderContent>
+                            <RowTemplate>
+                                <MudTd DataLabel="Name">
+                                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                        @if (context.IsFolder)
+                                        {
+                                            <MudIcon Icon="@Icons.Material.Filled.Folder" 
+                                                     Color="Color.Primary" 
+                                                     Size="Size.Small" />
+                                            <MudLink Typo="Typo.body2" 
+                                                     OnClick="@(async () => await NavigateToFolder(context.FolderNode!))"
+                                                     Style="cursor: pointer;">
+                                                @context.Name
+                                            </MudLink>
+                                        }
+                                        else
+                                        {
+                                            @if (CanViewFile(context.Name))
+                                            {
+                                                <MudIconButton Icon="@Icons.Material.Filled.RemoveRedEye"
+                                                               Size="Size.Small"
+                                                               OnClick="@(async () => await ViewFileAsync(context.FileInfo!.FileName, false))"
+                                                               title="View file"
+                                                               Style="color: #1976d2;" />
+                                            }
+                                            else
+                                            {
+                                                <MudIcon Icon="@Icons.Material.Filled.InsertDriveFile" 
+                                                         Size="Size.Small" />
+                                            }
+                                            <MudText Typo="Typo.body2">@context.Name</MudText>
+                                        }
+                                    </MudStack>
+                                </MudTd>
+                                <MudTd DataLabel="Last Modified">
+                                    <MudText Typo="Typo.body2">
+                                        @(context.IsFolder ? "-" : "")
+                                    </MudText>
+                                </MudTd>
+                                <MudTd DataLabel="Type">
+                                    <MudText Typo="Typo.body2">
+                                        @(context.IsFolder ? "Folder" : context.FileInfo?.Metadata?.DocumentType ?? "File")
+                                    </MudText>
+                                </MudTd>
+                                <MudTd DataLabel="Size">
+                                    <MudText Typo="Typo.body2">
+                                        @(context.IsFolder ? "-" : "")
+                                    </MudText>
+                                </MudTd>
+                                <MudTd DataLabel="Actions" Style="text-align: center;">
+                                    <MudStack Row="true" Justify="Justify.Center" Spacing="1">
+                                        @if (context.IsFolder)
+                                        {
+                                            <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                                           Color="Color.Default"
+                                                           Size="Size.Small"
+                                                           OnClick="@(async () => await DeleteFolderAsync(context.FolderNode!))"
+                                                           title="Delete Folder" />
+                                        }
+                                        else
+                                        {
+                                            @if (_processingFiles.Contains(context.FileInfo!.FileName))
+                                            {
+                                                <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+                                            }
+                                            else if (_deletingFiles.Contains(context.FileInfo!.FileName))
+                                            {
+                                                <MudProgressCircular Size="Size.Small" Indeterminate="true" Color="Color.Error" />
+                                            }
+                                            else
+                                            {
+                                                <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                                               Color="Color.Default"
+                                                               Size="Size.Small"
+                                                               OnClick="@(async () => await ShowEditFileMetadataDialogAsync(context.FileInfo!))"
+                                                               title="Edit Metadata" />
+                                            }
+                                        }
+                                    </MudStack>
+                                </MudTd>
+                            </RowTemplate>
+                            <PagerContent>
+                                <MudTablePager PageSizeOptions="new int[] { 10, 25, 50, 100 }" />
+                            </PagerContent>
+                        </MudTable>
+                    }
+                </MudStack>
+            </MudCardContent>
+        </MudCard>
+    }
+</MudContainer>
+
+<style>
+    .rounded-lg {
+        border-radius: 8px;
+    }
+</style>
+
+@code {
+    // Your existing code here...
 }

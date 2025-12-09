@@ -1,24 +1,33 @@
-﻿using Microsoft.SemanticKernel.ChatCompletion;
+﻿using Microsoft.Extensions.AI;
 using TiktokenSharp;
 
 namespace MinimalApi.Extensions;
 
+/// <summary>
+/// Extension methods for chat operations, migrated to Microsoft Agent Framework
+/// </summary>
 public static class SKExtensions
 {
-    public static KernelArguments AddUserParameters(this KernelArguments arguments, ChatRequest request, ProfileDefinition profile, UserInformation user)
+    /// <summary>
+    /// Creates a dictionary of user parameters from a chat request
+    /// </summary>
+    public static Dictionary<string, object?> CreateUserParameters(ChatRequest request, ProfileDefinition profile, UserInformation user)
     {
-        arguments[ContextVariableOptions.Profile] = profile;
-        arguments[ContextVariableOptions.UserId] = user.UserId;
-        arguments[ContextVariableOptions.SessionId] = user.SessionId;
+        var parameters = new Dictionary<string, object?>
+        {
+            [ContextVariableOptions.Profile] = profile,
+            [ContextVariableOptions.UserId] = user.UserId,
+            [ContextVariableOptions.SessionId] = user.SessionId
+        };
 
         if (request.SelectedUserCollectionFiles != null && request.SelectedUserCollectionFiles.Any())
         {
-            arguments[ContextVariableOptions.SelectedDocuments] = request.SelectedUserCollectionFiles;
+            parameters[ContextVariableOptions.SelectedDocuments] = request.SelectedUserCollectionFiles;
         }
 
         if (request.History.LastOrDefault()?.User is { } userQuestion)
         {
-            arguments[ContextVariableOptions.Question] = $"{userQuestion}";
+            parameters[ContextVariableOptions.Question] = $"{userQuestion}";
         }
         else
         {
@@ -29,30 +38,37 @@ public static class SKExtensions
         {
             foreach (var item in request.UserSelectionModel.Options)
             {
-                arguments[item.Name] = item.SelectedValue;
+                parameters[item.Name] = item.SelectedValue;
             }
         }
 
-
-        arguments[ContextVariableOptions.ChatTurns] = request.History;
-        return arguments;
+        parameters[ContextVariableOptions.ChatTurns] = request.History;
+        return parameters;
     }
 
-
-    public static ChatHistory AddChatHistory(this ChatHistory chatHistory, ChatTurn[] history)
+    /// <summary>
+    /// Converts chat history to a list of ChatMessages for Agent Framework
+    /// </summary>
+    public static IList<ChatMessage> ConvertChatHistory(ChatTurn[] history, string? systemMessage = null)
     {
+        var messages = new List<ChatMessage>();
+        
+        if (!string.IsNullOrEmpty(systemMessage))
+        {
+            messages.Add(new ChatMessage(ChatRole.System, systemMessage));
+        }
+
         foreach (var chatTurn in history.SkipLast(1))
         {
-            chatHistory.AddUserMessage(chatTurn.User);
+            messages.Add(new ChatMessage(ChatRole.User, chatTurn.User));
             if (chatTurn.Assistant != null)
             {
-                chatHistory.AddAssistantMessage(chatTurn.Assistant);
+                messages.Add(new ChatMessage(ChatRole.Assistant, chatTurn.Assistant));
             }
         }
 
-        return chatHistory;
+        return messages;
     }
-
 
     public static bool IsChatProfile(this Dictionary<string, string> options, List<ProfileDefinition> profiles)
     {
@@ -67,12 +83,14 @@ public static class SKExtensions
         var selected = profiles.FirstOrDefault(x => x.Name == profile.Name);
         return selected?.Approach.ToUpper() == "ENDPOINTASSISTANT";
     }
+
     public static bool IsEndpointAssistantV2Profile(this Dictionary<string, string> options, List<ProfileDefinition> profiles)
     {
         var profile = options.GetChatProfile(profiles);
         var selected = profiles.FirstOrDefault(x => x.Name == profile.Name);
         return selected?.Approach.ToUpper() == "ENDPOINTASSISTANTV2";
     }
+
     public static bool IsEndpointAssistantTaskProfile(this Dictionary<string, string> options, List<ProfileDefinition> profiles)
     {
         var profile = options.GetChatProfile(profiles);
@@ -86,12 +104,14 @@ public static class SKExtensions
         var selected = profiles.FirstOrDefault(x => x.Name == profile.Name);
         return selected?.Approach.ToUpper() == "AZUREAIAGENTCHATPROFILE";
     }
+
     public static bool IsImangeChatProfile(this Dictionary<string, string> options, List<ProfileDefinition> profiles)
     {
         var profile = options.GetChatProfile(profiles);
         var selected = profiles.FirstOrDefault(x => x.Name == profile.Name);
         return selected?.Approach.ToUpper() == "IMAGECHAT";
     }
+
     public static ProfileDefinition GetChatProfile(this Dictionary<string, string> options, List<ProfileDefinition> profiles)
     {
         var defaultProfile = profiles.First();
@@ -99,34 +119,39 @@ public static class SKExtensions
         return profiles.FirstOrDefault(x => x.Name == value) ?? defaultProfile;
     }
 
-
-    public static ApproachResponse BuildStreamingResoponse(this KernelArguments context, Kernel kernel, ProfileDefinition profile, ChatRequest request, ChatHistory chatHistory, string answer, IConfiguration configuration, string modelDeploymentName, long workflowDurationMilliseconds)
+    /// <summary>
+    /// Builds a streaming response for Agent Framework
+    /// </summary>
+    public static ApproachResponse BuildStreamingResponse(
+        ProfileDefinition profile, 
+        ChatRequest request, 
+        IList<ChatMessage> chatHistory, 
+        string answer, 
+        IConfiguration configuration, 
+        string modelDeploymentName, 
+        long workflowDurationMilliseconds,
+        IEnumerable<SupportingContentRecord>? dataSources = null,
+        IEnumerable<ExecutionStepResult>? functionCallResults = null)
     {
-        var requestTokenCount = chatHistory.GetTokenCount();
+        var requestTokenCount = GetTokenCount(chatHistory);
 
-        var dataSources = new List<SupportingContentRecord>();
-        var functionCallResults = kernel.GetFunctionCallResults();
-        foreach (var result in functionCallResults)
-        {
-            if (result.Sources != null && result.Sources.Any())
-            {
-                dataSources.AddRange(result.Sources);
-            }
-        }
+        var sources = dataSources?.ToList() ?? new List<SupportingContentRecord>();
 
         var completionTokens = GetTokenCount(answer);
         var totalTokens = completionTokens + requestTokenCount;
         var chatDiagnostics = new CompletionsDiagnostics(completionTokens, requestTokenCount, totalTokens, 0);
         var diagnostics = new Diagnostics(chatDiagnostics, modelDeploymentName, workflowDurationMilliseconds);
 
-        var thoughts = kernel.GetThoughtProcess(chatHistory.FirstOrDefault(x => x.Role == AuthorRole.System)?.Content ?? "", answer);
+        var systemMessage = chatHistory.FirstOrDefault(x => x.Role == ChatRole.System)?.Text ?? "";
+        var thoughts = GetThoughtProcess(systemMessage, answer, functionCallResults);
+        
         var contextData = new ResponseContext(
             profile.Name, 
-            dataSources.Distinct().ToArray(), // Remove duplicates
+            sources.Distinct().ToArray(),
             thoughts.Select(x => new ThoughtRecord(x.Name, x.Result)).ToArray(), 
             request.ChatTurnId, 
             request.ChatId, 
-            string.Empty, // ThreadId - using empty Guid as placeholder
+            string.Empty,
             diagnostics);
 
         return new ApproachResponse(
@@ -135,7 +160,17 @@ public static class SKExtensions
             contextData);
     }
 
-    public static ApproachResponse BuildChatSimpleResponse(this KernelArguments context, ProfileDefinition profile, ChatRequest request, int requestTokenCount, string answer, IConfiguration configuration, string modelDeploymentName, long workflowDurationMilliseconds)
+    /// <summary>
+    /// Builds a simple chat response for Agent Framework
+    /// </summary>
+    public static ApproachResponse BuildChatSimpleResponse(
+        ProfileDefinition profile, 
+        ChatRequest request, 
+        int requestTokenCount, 
+        string answer, 
+        IConfiguration configuration, 
+        string modelDeploymentName, 
+        long workflowDurationMilliseconds)
     {
         var completionTokens = GetTokenCount(answer);
         var totalTokens = completionTokens + requestTokenCount;
@@ -159,80 +194,58 @@ public static class SKExtensions
 
         return text;
     }
-    public static int GetTokenCount(this ChatHistory chatHistory)
+
+    /// <summary>
+    /// Gets token count for a list of chat messages
+    /// </summary>
+    public static int GetTokenCount(IList<ChatMessage> chatHistory)
     {
-        string requestContent = string.Join("", chatHistory.Select(x => x.Content));
+        string requestContent = string.Join("", chatHistory.Select(x => x.Text ?? ""));
         var tikToken = TikToken.EncodingForModel("gpt-3.5-turbo");
         return tikToken.Encode(requestContent).Count;
     }
 
+    /// <summary>
+    /// Gets token count for a string
+    /// </summary>
     public static int GetTokenCount(string text)
     {
         var tikToken = TikToken.EncodingForModel("gpt-3.5-turbo");
         return tikToken.Encode(text).Count;
     }
 
-    public static void AddFunctionCallResult(this Kernel kernel, string name, string result, List<KnowledgeSource> sources = null)
+    /// <summary>
+    /// Gets the thought process for diagnostics
+    /// </summary>
+    public static IEnumerable<ExecutionStepResult> GetThoughtProcess(
+        string systemPrompt, 
+        string answer, 
+        IEnumerable<ExecutionStepResult>? functionCallResults = null)
     {
-        var diagnosticsBuilder = GetRequestDiagnosticsBuilder(kernel);
-        if (sources != null && sources.Any())
+        if (functionCallResults != null)
         {
-            var supportingContent = sources.Select(x => new SupportingContentRecord(x.FilePath, x.Content)).ToList();
-            diagnosticsBuilder.AddFunctionCallResult(name, result, supportingContent);
-        }
-        else
-        {
-            diagnosticsBuilder.AddFunctionCallResult(name, result);
-        }
-    }
-
-    public static RequestDiagnosticsBuilder GetRequestDiagnosticsBuilder(this Kernel kernel)
-    {
-        if (!kernel.Data.ContainsKey("DiagnosticsBuilder"))
-        {
-            var diagnosticsBuilder = new RequestDiagnosticsBuilder();
-            kernel.Data.Add("DiagnosticsBuilder", diagnosticsBuilder);
-            return diagnosticsBuilder;
-        }
-
-        return kernel.Data["DiagnosticsBuilder"] as RequestDiagnosticsBuilder;
-    }
-    public static IEnumerable<ExecutionStepResult> GetFunctionCallResults(this Kernel kernel)
-    {
-        if (kernel.Data.ContainsKey("DiagnosticsBuilder"))
-        {
-            var diagnosticsBuilder = kernel.Data["DiagnosticsBuilder"] as RequestDiagnosticsBuilder;
-            foreach (var item in diagnosticsBuilder.FunctionCallResults)
+            foreach (var item in functionCallResults)
             {
                 yield return item;
             }
-        }
-    }
-
-    public static IEnumerable<ExecutionStepResult> GetThoughtProcess(this Kernel kernel, string systemPrompt, string answer)
-    {
-        var functionCallResults = kernel.GetFunctionCallResults();
-        foreach (var item in functionCallResults)
-        {
-            yield return item;
         }
         yield return new ExecutionStepResult("chat_completion", $"{systemPrompt} \n {answer}");
     }
 }
 
+/// <summary>
+/// Extension methods for vector search settings
+/// </summary>
 public static class VectorSearchExtensions
 {
     /// <summary>
-    /// Creates VectorSearchSettings from profile RAGSettings and adds it to the kernel
+    /// Creates VectorSearchSettings from profile RAGSettings
     /// </summary>
-    /// <param name="kernel">The kernel to add settings to</param>
-    /// <param name="profile">Profile containing RAG settings</param>
-    /// <returns>The provided kernel for chaining</returns>
-    public static Kernel AddVectorSearchSettings(this Kernel kernel, ProfileDefinition profile)
+    public static VectorSearchSettings CreateVectorSearchSettings(ProfileDefinition profile)
     {
         ArgumentNullException.ThrowIfNull(profile?.RAGSettings, "profile.RAGSettings");
         
-        kernel.Data["VectorSearchSettings"] = new VectorSearchSettings(
+        return new VectorSearchSettings(
             profile.RAGSettings.DocumentRetrievalIndexName,
             profile.RAGSettings.DocumentRetrievalDocumentCount,
             profile.RAGSettings.DocumentRetrievalSchema,
@@ -244,8 +257,6 @@ public static class VectorSearchExtensions
             profile.RAGSettings.SemanticConfigurationName,
             profile.RAGSettings.StorageContianer,
             profile.RAGSettings.CitationUseSourcePage);
-            
-        return kernel;
     }
 }
 

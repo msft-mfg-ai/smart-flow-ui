@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <NoDefaultLaunchSettingsFile>true</NoDefaultLaunchSettingsFile>
@@ -11,6 +11,34 @@
     <UserSecretsId>48daa172-8fe4-4b81-94b2-0d5a3a5ad30e</UserSecretsId>
     <NullabilityInfoContextSupport>true</NullabilityInfoContextSupport>
     <NoWarn>CS8618</NoWarn>
+    
+    <!-- Enable static web asset fingerprinting for cache busting -->
+    <StaticWebAssetsEnabled>true</StaticWebAssetsEnabled>
+    <WasmEnableExceptionHandling>true</WasmEnableExceptionHandling>
+    
+    <!-- Generate version info for cache busting -->
+    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+    <Deterministic>true</Deterministic>
+    
+    <!-- Compression for better performance -->
+    <BlazorEnableCompression>true</BlazorEnableCompression>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <WarningLevel>4</WarningLevel>
+    <WarningsAsErrors />
+    <!-- Enable debugging support for Blazor WebAssembly -->
+    <DebugType>portable</DebugType>
+    <DebugSymbols>true</DebugSymbols>
+    <BlazorWebAssemblyLoadAllGlobalizationData>false</BlazorWebAssemblyLoadAllGlobalizationData>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <WarningLevel>4</WarningLevel>
+    <WarningsAsErrors />
+    <!-- Optimize for production -->
+    <DebugType>none</DebugType>
+    <DebugSymbols>false</DebugSymbols>
   </PropertyGroup>
 
   <ItemGroup>
@@ -20,8 +48,6 @@
     <PackageReference Include="Markdig" />
     <PackageReference Include="Microsoft.Extensions.Http" />
     <PackageReference Include="MudBlazor" />
-    <PackageReference Include="System.Linq.Async" />
-    <PackageReference Include="System.Text.Json" />
     <PackageReference Include="Newtonsoft.Json" />
   </ItemGroup>
 

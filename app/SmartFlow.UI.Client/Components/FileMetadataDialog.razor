@@ -1,0 +1,122 @@
+@using global::Shared.Models
+@using MudBlazor
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.Edit" Class="mr-3" />
+            Edit File Metadata
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudForm @ref="_form">
+            <MudTextField @bind-Value="@Metadata.FileName" 
+                         Label="File Name" 
+                         Variant="Variant.Outlined"
+                         ReadOnly="true"
+                         Class="mb-3" />
+            
+            <MudTextField @bind-Value="@Metadata.BlobPath" 
+                         Label="Blob Path" 
+                         Variant="Variant.Outlined"
+                         HelperText="Full path in blob storage"
+                         Class="mb-3" />
+            
+            <MudDivider Class="my-4" />
+            <MudText Typo="Typo.subtitle1" Class="mb-2">Equipment Information</MudText>
+            
+            <MudTextField @bind-Value="@Metadata.EquipmentCategory" 
+                         Label="Equipment Category" 
+                         Variant="Variant.Outlined"
+                         Class="mb-3" />
+            
+            <MudTextField @bind-Value="@Metadata.EquipmentSubcategory" 
+                         Label="Equipment Subcategory" 
+                         Variant="Variant.Outlined"
+                         Class="mb-3" />
+            
+            <MudTextField @bind-Value="@Metadata.EquipmentPart" 
+                         Label="Equipment Part" 
+                         Variant="Variant.Outlined"
+                         Class="mb-3" />
+            
+            <MudTextField @bind-Value="@Metadata.EquipmentPartSubcategory" 
+                         Label="Equipment Part Subcategory" 
+                         Variant="Variant.Outlined"
+                         Class="mb-3" />
+            
+            <MudDivider Class="my-4" />
+            <MudText Typo="Typo.subtitle1" Class="mb-2">Product Information</MudText>
+            
+            <MudTextField @bind-Value="@Metadata.Product" 
+                         Label="Product" 
+                         Variant="Variant.Outlined"
+                         Class="mb-3" />
+            
+            <MudTextField @bind-Value="@Metadata.Manufacturer" 
+                         Label="Manufacturer" 
+                         Variant="Variant.Outlined"
+                         Class="mb-3" />
+            
+            <MudDivider Class="my-4" />
+            <MudText Typo="Typo.subtitle1" Class="mb-2">Document Information</MudText>
+            
+            <MudSelect @bind-Value="@Metadata.DocumentType" 
+                      Label="Document Type" 
+                      Variant="Variant.Outlined"
+                      Class="mb-3">
+                <MudSelectItem T="string" Value="@("")">-- Not Specified --</MudSelectItem>
+                <MudSelectItem T="string" Value="@("Guide Specs")">Guide Specs</MudSelectItem>
+                <MudSelectItem T="string" Value="@("Manual")">Manual</MudSelectItem>
+                <MudSelectItem T="string" Value="@("Datasheet")">Datasheet</MudSelectItem>
+                <MudSelectItem T="string" Value="@("Installation Guide")">Installation Guide</MudSelectItem>
+                <MudSelectItem T="string" Value="@("Technical Specification")">Technical Specification</MudSelectItem>
+                <MudSelectItem T="string" Value="@("Drawing")">Drawing</MudSelectItem>
+                <MudSelectItem T="string" Value="@("Other")">Other</MudSelectItem>
+            </MudSelect>
+            
+            <MudSelect @bind-Value="@Metadata.IsRequiredForCde" 
+                      Label="Required for CDE" 
+                      Variant="Variant.Outlined"
+                      Class="mb-3">
+                <MudSelectItem T="string" Value="@("Yes")">Yes</MudSelectItem>
+                <MudSelectItem T="string" Value="@("No")">No</MudSelectItem>
+            </MudSelect>
+            
+            <MudSelect @bind-Value="@Metadata.AddedToIndex" 
+                      Label="Added to Index" 
+                      Variant="Variant.Outlined"
+                      Class="mb-3">
+                <MudSelectItem T="string" Value="@("Yes")">Yes</MudSelectItem>
+                <MudSelectItem T="string" Value="@("No")">No</MudSelectItem>
+            </MudSelect>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Save">Save</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] 
+    public required IMudDialogInstance Dialog { get; set; }
+
+    [Parameter]
+    public string FileName { get; set; } = string.Empty;
+
+    [Parameter]
+    public FileMetadata Metadata { get; set; } = new();
+
+    private MudForm _form = null!;
+
+    private void Cancel()
+    {
+        Dialog.Cancel();
+    }
+
+    private void Save()
+    {
+        Dialog.Close(DialogResult.Ok(Metadata));
+    }
+}

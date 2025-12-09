@@ -1,0 +1,178 @@
+@using Microsoft.AspNetCore.Components.Forms
+
+<MudCard Elevation="1" Class="rounded-lg">
+    <MudCardContent Class="pa-6">
+        <MudStack Spacing="4">
+            <!-- Header -->
+            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                    <MudIcon Icon="@Icons.Material.Filled.CloudUpload" Color="Color.Primary" Size="Size.Medium" />
+                    <MudText Typo="Typo.h6">Upload Documents to @TargetName</MudText>
+                </MudStack>
+                <MudIconButton Icon="@Icons.Material.Filled.Close" 
+                               OnClick="OnClose"
+                               Size="Size.Small"
+                               title="Close upload section" />
+            </MudStack>
+
+            <MudDivider />
+
+            <!-- File Selection Area -->
+            <MudStack Spacing="3">
+                <MudFileUpload T="IReadOnlyList<IBrowserFile>" 
+                           Accept=".pdf,.png,.jpg,.jpeg" 
+                           MaximumFileCount="10" 
+                           FilesChanged="OnFilesChanged" 
+                           Required="true" 
+                           RequiredError="You must select at least one file to upload.">
+                    <ActivatorContent>
+                        <MudButton HtmlTag="label"
+                                   Variant="Variant.Filled"
+                                   Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Filled.FileOpen">
+                            Select Files
+                        </MudButton>
+                    </ActivatorContent>
+                </MudFileUpload>
+
+                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                    Maximum file size: @(MaxIndividualFileSize.ToHumanReadableSize()) | Accepted formats: PDF, PNG, JPG, JPEG
+                </MudText>
+            </MudStack>
+
+            <!-- Selected Files Display -->
+            @if (SelectedFiles.Any())
+            {
+                <MudPaper Elevation="0" Class="pa-4" Style="background-color: #f8f9fa; border-radius: 8px;">
+                    <MudStack Spacing="3">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                            <MudIcon Icon="@Icons.Material.Filled.Folder" Size="Size.Small" Color="Color.Primary" />
+                            <MudText Typo="Typo.body2" Style="font-weight: 500;">
+                                @(SelectedFiles.Count) file(s) selected
+                            </MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                (@(SelectedFiles.Sum(f => f.Size).ToHumanReadableSize()) total)
+                            </MudText>
+                        </MudStack>
+                        
+                        <MudStack Spacing="1">
+                            @foreach (var file in SelectedFiles)
+                            {
+                                var fileSize = file.Size.ToHumanReadableSize();
+                                var fileName = file.Name;
+                                <MudPaper Elevation="0" Class="pa-2" Style="background-color: white; border: 1px solid #e0e0e0; border-radius: 4px;">
+                                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Style="flex: 1; min-width: 0;">
+                                            <MudIcon Icon="@Icons.Material.Filled.InsertDriveFile" Size="Size.Small" Color="Color.Default" />
+                                            <MudText Typo="Typo.body2" Style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                                @fileName
+                                            </MudText>
+                                            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                                (@fileSize)
+                                            </MudText>
+                                        </MudStack>
+                                        <MudIconButton Icon="@Icons.Material.Filled.Close" 
+                                                       Size="Size.Small"
+                                                       OnClick="@(() => OnRemoveFile(file))"
+                                                       Title="Remove file" />
+                                    </MudStack>
+                                </MudPaper>
+                            }
+                        </MudStack>
+                    </MudStack>
+                </MudPaper>
+            }
+
+            <MudDivider />
+
+            <!-- Action Buttons -->
+            <MudStack Row="true" Spacing="2" Justify="Justify.FlexEnd">
+                @if (IsUploading)
+                {
+                    <MudProgressCircular Indeterminate="true" Size="Size.Small" Class="mr-2" />
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Uploading documents...</MudText>
+                }
+                else
+                {
+                    <MudButton Variant="Variant.Text"
+                               Color="Color.Default"
+                               Disabled="@(!SelectedFiles.Any())"
+                               OnClick="OnClearAll">
+                        Clear All
+                    </MudButton>
+                    <MudButton StartIcon="@Icons.Material.Filled.Upload"
+                               Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               Disabled="@(!SelectedFiles.Any())"
+                               OnClick="OnUpload">
+                        Upload @(SelectedFiles.Count) File@(SelectedFiles.Count != 1 ? "s" : "")
+                    </MudButton>
+                }
+            </MudStack>
+        </MudStack>
+    </MudCardContent>
+</MudCard>
+
+@code {
+    [Parameter, EditorRequired]
+    public string TargetName { get; set; } = string.Empty;
+
+    [Parameter]
+    public long MaxIndividualFileSize { get; set; } = 1_024 * 1_024 * 250; // 250MB default
+
+    [Parameter]
+    public IList<IBrowserFile> SelectedFiles { get; set; } = new List<IBrowserFile>();
+
+    [Parameter]
+    public bool IsUploading { get; set; }
+    
+    [Parameter]
+    public string FolderPath { get; set; } = string.Empty;
+    
+    [Parameter]
+    public EventCallback<string> FolderPathChanged { get; set; }
+
+    [Parameter]
+    public string Description { get; set; } = string.Empty;
+
+    [Parameter]
+    public EventCallback<string> DescriptionChanged { get; set; }
+
+    [Parameter]
+    public EventCallback OnClose { get; set; }
+
+    [Parameter]
+    public EventCallback<IReadOnlyList<IBrowserFile>> OnFilesSelected { get; set; }
+
+    [Parameter]
+    public EventCallback OnUpload { get; set; }
+
+    private void OnFilesChanged(IReadOnlyList<IBrowserFile> files)
+    {
+        foreach (var file in files)
+        {
+            SelectedFiles.Add(file);
+        }
+        OnFilesSelected.InvokeAsync(files);
+        StateHasChanged();
+    }
+
+    private void OnRemoveFile(IBrowserFile file)
+    {
+        SelectedFiles.Remove(file);
+        StateHasChanged();
+    }
+
+    private void OnClearAll()
+    {
+        SelectedFiles.Clear();
+        Description = string.Empty;
+        DescriptionChanged.InvokeAsync(Description);
+        StateHasChanged();
+    }
+
+    protected override void OnParametersSet()
+    {
+        Console.WriteLine($"[UPLOAD COMPONENT] FolderPath = '{FolderPath}'");
+    }
+}

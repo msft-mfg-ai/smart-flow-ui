@@ -2,7 +2,7 @@
 
 using static System.Net.WebRequestMethods;
 
-namespace SmartFlow.UI.Client.Shared;
+namespace SmartFlow.UI.Client.Layout;
 
 public sealed partial class MainLayout
 {
@@ -27,7 +27,6 @@ public sealed partial class MainLayout
 
     private bool _drawerOpen = false;
     private bool _settingsOpen = false;
-    private SettingsPanel? _settingsPanel;
 
     private bool _isDarkTheme
     {

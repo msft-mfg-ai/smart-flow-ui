@@ -1,10 +1,10 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace SmartFlow.UI.Client.Pages;
 
 public sealed partial class Docs : IDisposable
 {
-    private const long MaxIndividualFileSize = 1_024 * 1_024 * 10;
+    private const long MaxIndividualFileSize = 1_024 * 1_024 * 50;
 
     private MudForm _form = null!;
 
@@ -70,7 +70,7 @@ public sealed partial class Docs : IDisposable
         if (_fileUploads.Any())
         {
             //var cookie = await JSRuntime.InvokeAsync<string>("getCookie", "XSRF-TOKEN");
-            var result = await Client.UploadDocumentsAsync(_fileUploads.ToArray(), MaxIndividualFileSize, null);
+            var result = await Client.UploadDocumentsAsync(_fileUploads.ToArray(), MaxIndividualFileSize, "default", new Dictionary<string, string>());
 
             Logger.LogInformation("Result: {x}", result);
 
@@ -90,7 +90,7 @@ public sealed partial class Docs : IDisposable
             else
             {
                 Snackbar.Add(
-                    result.Error,
+                    result.Error ?? "An error occurred",
                     Severity.Error,
                     static options =>
                     {
@@ -117,5 +117,9 @@ public sealed partial class Docs : IDisposable
     }
 
 
-    public void Dispose() => _cancellationTokenSource.Cancel();
+    public void Dispose()
+    {
+        _cancellationTokenSource.Cancel();
+        _cancellationTokenSource.Dispose();
+    }
 }

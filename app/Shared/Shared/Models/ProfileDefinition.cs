@@ -7,11 +7,29 @@ public class ProfileDefinition
     public ProfileDefinition()
     {
         Name = "Undefined";
+        Id = string.Empty;
+        Approach = string.Empty;
+        SecurityModel = string.Empty;
+        SecurityModelGroupMembership = new List<string>();
+        SampleQuestions = new List<string>();
+        UserPromptTemplates = new List<UserPromptTemplate>();
+        ChatSystemMessageFile = string.Empty;
+        ChatSystemMessage = string.Empty;
     }
+    
     public ProfileDefinition(string name)
     {
         Name = name;
+        Id = string.Empty;
+        Approach = string.Empty;
+        SecurityModel = string.Empty;
+        SecurityModelGroupMembership = new List<string>();
+        SampleQuestions = new List<string>();
+        UserPromptTemplates = new List<UserPromptTemplate>();
+        ChatSystemMessageFile = string.Empty;
+        ChatSystemMessage = string.Empty;
     }
+    
     public ProfileDefinition(
         string name,
         string id,
@@ -34,65 +52,68 @@ public class ProfileDefinition
         RAGSettings = ragSettingsSummary;
         AssistantEndpointSettings = assistantEndpointSettingsSummary;
         SecurityModelGroupMembership = securityModelGroupMembership ?? ([]);
+        UserPromptTemplates = new List<UserPromptTemplate>();
+        ChatSystemMessageFile = string.Empty;
+        ChatSystemMessage = string.Empty;
     }
 
-    public string Name { get; set; }
-    public string Id { get; set; }
-    public string Approach { get; set; }
-    public string SecurityModel { get; set; }
+    public string Name { get; set; } = "Undefined";
+    public string Id { get; set; } = string.Empty;
+    public string Approach { get; set; } = string.Empty;
+    public string SecurityModel { get; set; } = string.Empty;
     public bool AllowFileUpload { get; set; }
-    public List<string> SecurityModelGroupMembership { get; set; }
+    public List<string> SecurityModelGroupMembership { get; set; } = new();
     public RAGSettingsSummary? RAGSettings { get; set; }
     public AssistantEndpointSettingsSummary? AssistantEndpointSettings { get; set; }
-    public string ChatSystemMessageFile { get; set; }
-    public string ChatSystemMessage { get; set; }
-    public List<string> SampleQuestions { get; set; }
-    public List<UserPromptTemplate> UserPromptTemplates { get; set; }
+    public string ChatSystemMessageFile { get; set; } = string.Empty;
+    public string ChatSystemMessage { get; set; } = string.Empty;
+    public List<string> SampleQuestions { get; set; } = new();
+    public List<UserPromptTemplate> UserPromptTemplates { get; set; } = new();
     public string? AzureAIAgentID { get; set; }
 }
 
 public class RAGSettingsSummary
 {
-    public required string DocumentRetrievalSchema { get; set; }
-    public required string DocumentRetrievalEmbeddingsDeployment { get; set; }
-    public required string DocumentRetrievalIndexName { get; set; }
+    public string DocumentRetrievalSchema { get; set; } = string.Empty;
+    public string DocumentRetrievalEmbeddingsDeployment { get; set; } = string.Empty;
+    public string DocumentRetrievalIndexName { get; set; } = string.Empty;
     public string? DocumentIndexerName { get; set; }
-    public required int DocumentRetrievalDocumentCount { get; set; }
-    public required int DocumentRetrievalMaxSourceTokens { get; set; } = 12000;
-    public required string ChatSystemMessage { get; set; }
-    public required string ChatUserMessage { get; set; }
-    public required string ChatSystemMessageFile { get; set; }
-    public required string StorageContianer { get; set; }
-    public required bool CitationUseSourcePage { get; set; }
-    public required bool UseSemanticRanker { get; set; }
+    public int DocumentRetrievalDocumentCount { get; set; }
+    public int DocumentRetrievalMaxSourceTokens { get; set; } = 12000;
+    public string ChatSystemMessage { get; set; } = string.Empty;
+    public string ChatUserMessage { get; set; } = string.Empty;
+    public string ChatSystemMessageFile { get; set; } = string.Empty;
+    public string StorageContianer { get; set; } = string.Empty;
+    public bool CitationUseSourcePage { get; set; }
+    public bool UseSemanticRanker { get; set; }
     public string? SemanticConfigurationName { get; set; }
-    public required int KNearestNeighborsCount { get; set; } = 3;
-    public required bool Exhaustive { get; set; } = false;
+    public int KNearestNeighborsCount { get; set; } = 3;
+    public bool Exhaustive { get; set; } = false;
     
-    public required IEnumerable<ProfileUserSelectionOption> ProfileUserSelectionOptions { get; set; }
+    public IEnumerable<ProfileUserSelectionOption> ProfileUserSelectionOptions { get; set; } = new List<ProfileUserSelectionOption>();
 }
 
 public class ProfileUserSelectionOption
 {
-    public required string DisplayName { get; set; }
-    public required string IndexFieldName { get; set; }
+    public string DisplayName { get; set; } = string.Empty;
+    public string IndexFieldName { get; set; } = string.Empty;
 }
 
 public class DocumentCollectionRAGSettings
 {
-    public required string GenerateSearchQueryPluginName { get; set; }
-    public required string GenerateSearchQueryPluginQueryFunctionName { get; set; }
-    public required string DocumentRetrievalPluginName { get; set; }
-    public required string DocumentRetrievalPluginQueryFunctionName { get; set; }
-    public required string DocumentRetrievalIndexName { get; set; }
+    public string GenerateSearchQueryPluginName { get; set; } = string.Empty;
+    public string GenerateSearchQueryPluginQueryFunctionName { get; set; } = string.Empty;
+    public string DocumentRetrievalPluginName { get; set; } = string.Empty;
+    public string DocumentRetrievalPluginQueryFunctionName { get; set; } = string.Empty;
+    public string DocumentRetrievalIndexName { get; set; } = string.Empty;
     public int DocumentRetrievalDocumentCount { get; set; }
-    public required string ChatSystemMessageFile { get; set; }
-    public required string StorageContianer { get; set; }
+    public string ChatSystemMessageFile { get; set; } = string.Empty;
+    public string StorageContianer { get; set; } = string.Empty;
 }
 
 public class AssistantEndpointSettingsSummary
 {
-    public required string APIEndpointSetting { get; set; }
-    public required string APIEndpointKeySetting { get; set; }
-    public required bool AllowFileUpload { get; set; }
+    public string APIEndpointSetting { get; set; } = string.Empty;
+    public string APIEndpointKeySetting { get; set; } = string.Empty;
+    public bool AllowFileUpload { get; set; }
 }

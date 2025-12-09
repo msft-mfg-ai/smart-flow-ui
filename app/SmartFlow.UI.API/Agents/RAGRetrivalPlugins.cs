@@ -3,6 +3,11 @@ using MinimalApi.Services.Search.IndexDefinitions;
 
 namespace Assistants.Hub.API.Assistants.RAG;
 
+/// <summary>
+/// RAG Retrieval Plugins for Microsoft Agent Framework
+/// Note: This class no longer uses Semantic Kernel's KernelFunction attribute
+/// Instead, it provides direct async methods for RAG retrieval
+/// </summary>
 public class RAGRetrivalPlugins
 {
     private readonly SearchClientFactory _searchClientFactory;
@@ -14,32 +19,21 @@ public class RAGRetrivalPlugins
         _azureOpenAIClient = azureOpenAIClient;
     }
 
-    [KernelFunction("get_sources")]
-    [Description("Gets relevant information based on the provided search term.")]
-    [return: Description("A list relevant source information based on the provided search term.")]
-    public async Task<IEnumerable<KnowledgeSource>> GetKnowledgeSourcesAsync(Kernel kernel, [Description("Search query")] string searchQuery)
+    /// <summary>
+    /// Gets relevant information based on the provided search term.
+    /// </summary>
+    /// <param name="settings">Vector search settings from profile</param>
+    /// <param name="searchQuery">The search query</param>
+    /// <returns>A list of relevant source information based on the provided search term.</returns>
+    public async Task<IEnumerable<KnowledgeSource>> GetKnowledgeSourcesAsync(VectorSearchSettings settings, string searchQuery)
     {
-        try
-        {
-            var settings = kernel.Data["VectorSearchSettings"] as VectorSearchSettings;
-            if (settings == null)
-                throw new ArgumentNullException(nameof(settings), "VectorSearchSettings cannot be null");
+        ArgumentNullException.ThrowIfNull(settings, nameof(settings));
 
-            // Get the appropriate search function based on the index schema definition
-            var searchLogic = GetSearchLogic(settings);
-            var results = await searchLogic(searchQuery);
+        // Get the appropriate search function based on the index schema definition
+        var searchLogic = GetSearchLogic(settings);
+        var results = await searchLogic(searchQuery);
 
-            // Add kernel context for diagnostics
-            kernel.AddFunctionCallResult("get_knowledge_articles",  $"Search Query: {searchQuery} /n {System.Text.Json.JsonSerializer.Serialize(results, new System.Text.Json.JsonSerializerOptions { WriteIndented = true })}", results.ToList());
-
-            return results;
-        }
-        catch (Exception ex)
-        {
-            // Log the exception
-            kernel.AddFunctionCallResult("get_knowledge_articles", $"Error: {ex.Message}", null);
-            throw;
-        }
+        return results;
     }
 
     private Func<string, Task<IEnumerable<KnowledgeSource>>> GetSearchLogic(VectorSearchSettings settings)
@@ -63,6 +57,15 @@ public class RAGRetrivalPlugins
                     AISearchIndexerIndexDefinintion.EmbeddingsFieldName, 
                     settings);
                 return async (query) => await aiSearchLogic.SearchAsync(query);
+
+            case "CustomRutzscoV1":
+                var customRutzscoLogic = new SearchLogic<CustomRutzscoV1IndexDefinition>(
+                    _azureOpenAIClient, 
+                    _searchClientFactory, 
+                    CustomRutzscoV1IndexDefinition.SelectFieldNames, 
+                    CustomRutzscoV1IndexDefinition.EmbeddingsFieldName, 
+                    settings);
+                return async (query) => await customRutzscoLogic.SearchAsync(query);
 
             default:
                 throw new ArgumentException($"Unsupported IndexSchemaDefinition: {settings.IndexSchemaDefinition}", 

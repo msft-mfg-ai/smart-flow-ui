@@ -1,0 +1,617 @@
+@page "/projects"
+
+<PageTitle>Project Management</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="pt-4 pb-6">
+    <!-- Header Section -->
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-4">
+        <MudText Typo="Typo.h5">Project Management</MudText>
+        
+        @if (!_showUploadSection)
+        {
+            <MudTooltip Text="Create Project" Arrow="true" Placement="Placement.Bottom">
+                <MudIconButton Icon="@Icons.Material.Filled.Add" 
+                               Color="Color.Default"
+                               Size="Size.Small"
+                               OnClick="ShowCreateProjectForm" />
+            </MudTooltip>
+            
+            @if (!string.IsNullOrEmpty(_selectedProject))
+            {
+                <MudTooltip Text="Edit Project Metadata" Arrow="true" Placement="Placement.Bottom">
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit" 
+                                   Color="Color.Default"
+                                   Size="Size.Small"
+                                   OnClick="ShowEditMetadataForm" />
+                </MudTooltip>
+                
+                <MudTooltip Text="Delete Project" Arrow="true" Placement="Placement.Bottom">
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" 
+                                   Color="Color.Default"
+                                   Size="Size.Small"
+                                   OnClick="ShowDeleteProjectDialogAsync" />
+                </MudTooltip>
+            }
+        }
+        
+        <MudSpacer />
+    </MudStack>
+
+    <!-- Upload Section - Full width when visible -->
+    @if (_showUploadSection)
+    {
+        <FileUploadSection TargetName="@_selectedProject"
+                         MaxIndividualFileSize="MaxIndividualFileSize"
+                         SelectedFiles="_fileUploads"
+                         IsUploading="_isUploadingDocuments"
+                         @bind-Description="_fileDescription"
+                         OnClose="@(() => _showUploadSection = false)"
+                         OnUpload="SubmitFilesForUploadAsync" />
+    }
+    else
+    {
+        <!-- Create/Edit Forms Section -->
+        @if (_showCreateProjectForm)
+        {
+            <MudCard Elevation="2" Class="mb-4">
+                <MudCardHeader>
+                    <CardHeaderAvatar>
+                        <MudAvatar Color="Color.Primary" Variant="Variant.Filled">
+                            <MudIcon Icon="@Icons.Material.Filled.CreateNewFolder" />
+                        </MudAvatar>
+                    </CardHeaderAvatar>
+                    <CardHeaderContent>
+                        <MudText Typo="Typo.h6">Create New Project</MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">Set up a new project workspace</MudText>
+                    </CardHeaderContent>
+                </MudCardHeader>
+                <MudCardContent Class="pt-0">
+                    <MudForm @ref="_createProjectForm" @bind-IsValid="_createProjectFormValid">
+                        <MudTextField @bind-Value="_newProjectName" 
+                                      Label="Project Name" 
+                                      Variant="Variant.Outlined"
+                                      Required="true"
+                                      RequiredError="Project name is required"
+                                      Validation="@(new Func<string, string>(ValidateProjectName))"
+                                      Immediate="true"
+                                      HelperText="Enter a unique name for the project. Use lowercase letters, numbers, and hyphens only."
+                                      Class="mb-4" />
+                        
+                        <MudTextField @bind-Value="_newProjectType" 
+                                      Label="Type (Optional)" 
+                                      Variant="Variant.Outlined"
+                                      HelperText="Specify the type or category of this project (e.g., Research, Analysis, Development)"
+                                      Class="mb-4" />
+                        
+                        <MudTextField @bind-Value="_newProjectDescription" 
+                                      Label="Description (Optional)" 
+                                      Variant="Variant.Outlined"
+                                      Lines="3"
+                                      HelperText="Provide a brief description of what this project contains" />
+                    </MudForm>
+                </MudCardContent>
+                <MudCardActions Class="pa-4 pt-0">
+                    <MudSpacer />
+                    <MudButton OnClick="CancelCreateProject" 
+                               Variant="Variant.Text"
+                               Class="mr-2">
+                        Cancel
+                    </MudButton>
+                    <MudButton Color="Color.Primary" 
+                               Variant="Variant.Filled" 
+                               OnClick="CreateProjectAsync"
+                               Disabled="@(!_createProjectFormValid || string.IsNullOrWhiteSpace(_newProjectName))"
+                               StartIcon="@Icons.Material.Filled.Check">
+                        Create Project
+                    </MudButton>
+                </MudCardActions>
+            </MudCard>
+        }
+
+        @if (_showEditMetadataForm)
+        {
+            <MudCard Elevation="2" Class="mb-4">
+                <MudCardHeader>
+                    <CardHeaderAvatar>
+                        <MudAvatar Color="Color.Primary" Variant="Variant.Filled">
+                            <MudIcon Icon="@Icons.Material.Filled.Edit" />
+                        </MudAvatar>
+                    </CardHeaderAvatar>
+                    <CardHeaderContent>
+                        <MudText Typo="Typo.h6">Edit Project Metadata</MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">Update project details for @_selectedProject</MudText>
+                    </CardHeaderContent>
+                </MudCardHeader>
+                <MudCardContent Class="pt-0">
+                    <MudForm>
+                        <MudTextField @bind-Value="_editProjectType" 
+                                      Label="Type (Optional)" 
+                                      Variant="Variant.Outlined"
+                                      HelperText="Specify the type or category of this project"
+                                      Class="mb-4" />
+                    
+                        <MudTextField @bind-Value="_editProjectDescription" 
+                                      Label="Description (Optional)" 
+                                      Variant="Variant.Outlined"
+                                      Lines="3"
+                                      HelperText="Provide a brief description of what this project contains" />
+                    </MudForm>
+                </MudCardContent>
+                <MudCardActions Class="pa-4 pt-0">
+                    <MudSpacer />
+                    <MudButton OnClick="CancelEditMetadata" 
+                               Variant="Variant.Text"
+                               Class="mr-2">
+                        Cancel
+                    </MudButton>
+                    <MudButton Color="Color.Primary" 
+                               Variant="Variant.Filled" 
+                               OnClick="UpdateProjectMetadataAsync"
+                               StartIcon="@Icons.Material.Filled.Save">
+                        Save Changes
+                    </MudButton>
+                </MudCardActions>
+            </MudCard>
+        }
+
+        <!-- Horizontal Layout: Project Selector (Left) and Project Details (Right) -->
+        <MudGrid Spacing="4">
+            <!-- LEFT PANEL: Project Selector -->
+            <MudItem xs="12" md="4" lg="3">
+                <MudCard Elevation="2" Style="height: 100%;">
+                    <MudCardHeader Class="pb-0">
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">Projects</MudText>
+                        </CardHeaderContent>
+                        <CardHeaderActions>
+                            @if (_projects.Any())
+                            {
+                                <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Text">
+                                    @_projects.Count()
+                                </MudChip>
+                            }
+                        </CardHeaderActions>
+                    </MudCardHeader>
+                    <MudCardContent Class="pt-2">
+                        <MudStack Spacing="2">
+                            <!-- Search Bar -->
+                            <MudTextField @bind-Value="_projectFilter" 
+                                          Placeholder="Search projects..." 
+                                          Variant="Variant.Outlined"
+                                          Adornment="Adornment.Start"
+                                          AdornmentIcon="@Icons.Material.Filled.Search"
+                                          Immediate="true"
+                                          DebounceInterval="300"
+                                          FullWidth="true"
+                                          Margin="Margin.Dense"
+                                          Clearable="true" />
+
+                            <!-- Projects List -->
+                            @if (_isLoadingProjects)
+                            {
+                                <MudStack AlignItems="AlignItems.Center" Class="py-8">
+                                    <MudProgressCircular Indeterminate="true" Size="Size.Medium" Color="Color.Primary" />
+                                    <MudText Typo="Typo.body2" Color="Color.Secondary">Loading projects...</MudText>
+                                </MudStack>
+                            }
+                            else if (!_projects.Any())
+                            {
+                                <MudStack AlignItems="AlignItems.Center" Class="py-8" Spacing="2">
+                                    <MudIcon Icon="@Icons.Material.Filled.FolderOff" Size="Size.Large" Color="Color.Secondary" />
+                                    <MudText Typo="Typo.body1" Color="Color.Secondary">No projects found</MudText>
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary" Align="Align.Center">
+                                        Get started by creating your first project
+                                    </MudText>
+                                    <MudButton StartIcon="@Icons.Material.Filled.Add" 
+                                               Color="Color.Primary" 
+                                               Variant="Variant.Filled"
+                                               OnClick="ShowCreateProjectForm"
+                                               Class="mt-2">
+                                        Create Project
+                                    </MudButton>
+                                </MudStack>
+                            }
+                            else
+                            {
+                                <MudList T="string" Dense="true" Class="projects-list-container pa-0">
+                                    @foreach (var project in _projects.Where(p => OnProjectFilter(p))
+                                                                     .OrderBy(p => p.Name))
+                                    {
+                                        <MudListItem T="string" 
+                                                     Icon="@Icons.Material.Filled.Folder"
+                                                     IconColor="@(project.Name == _selectedProject ? Color.Primary : Color.Default)"
+                                                     Class="@GetProjectItemClass(project)"
+                                                     OnClick="@(async () => await OnProjectSelectionChangedAsync(project))">
+                                            <MudText Typo="Typo.body2" Style="@GetProjectTextStyle(project)">
+                                                @project.Name
+                                            </MudText>
+                                        </MudListItem>
+                                    }
+                                </MudList>
+                            }
+                        </MudStack>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+
+            <!-- RIGHT PANEL: Project Details -->
+            <MudItem xs="12" md="8" lg="9">
+                @if (!string.IsNullOrEmpty(_selectedProject) && _selectedProjectInfo != null)
+                {
+                    <MudCard Elevation="2">
+                        <MudCardHeader>
+                            <CardHeaderAvatar>
+                                <MudAvatar Color="Color.Primary" Variant="Variant.Outlined">
+                                    <MudIcon Icon="@Icons.Material.Filled.Folder" />
+                                </MudAvatar>
+                            </CardHeaderAvatar>
+                            <CardHeaderContent>
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Style="width: 100%;">
+                                    <MudText Typo="Typo.h6">@_selectedProject</MudText>
+                                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                        <MudButton Color="Color.Primary" 
+                                                   Variant="Variant.Outlined" 
+                                                   Size="Size.Small"
+                                                   OnClick="@(async () => await AnalyzeSelectedProjectAsync())"
+                                                   Disabled="@(!_projectFiles.Any() || _isWorkflowProcessing)">
+                                            Analyze Spec
+                                        </MudButton>
+                                        <MudButton Color="Color.Primary" 
+                                                   Variant="Variant.Outlined" 
+                                                   Size="Size.Small"
+                                                   OnClick="@(async () => await AnalyzeSpecV2SelectedProjectAsync())"
+                                                   Disabled="@(!_projectFiles.Any() || _isWorkflowProcessing)">
+                                            Analyze Spec V2
+                                        </MudButton>
+                                        <MudButton Color="Color.Primary" 
+                                                   Variant="Variant.Outlined" 
+                                                   Size="Size.Small"
+                                                   OnClick="@(async () => await AnalyzePlanSelectedProjectAsync())"
+                                                   Disabled="@(!_projectFiles.Any() || _isWorkflowProcessing)">
+                                            Analyze Plan
+                                        </MudButton>
+                                        <MudTooltip Text="Refresh" Arrow="true">
+                                            <MudIconButton Icon="@Icons.Material.Filled.Refresh" 
+                                                           Size="Size.Small"
+                                                           OnClick="RefreshAsync" />
+                                        </MudTooltip>
+                                    </MudStack>
+                                </MudStack>
+                            </CardHeaderContent>
+                        </MudCardHeader>
+
+                        <MudDivider />
+
+                        <MudCardContent>
+                            <MudStack Spacing="4">
+                                <!-- Files Section -->
+                                <MudStack Spacing="3">
+                                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                            <MudIcon Icon="@Icons.Material.Filled.Description" Size="Size.Small" />
+                                            <MudText Typo="Typo.subtitle2" Style="font-weight: 600;">Files</MudText>
+                                            <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Text">
+                                                @_projectFiles.Count
+                                            </MudChip>
+                                        </MudStack>
+                                        
+                                        <MudButton Color="Color.Primary"
+                                                   Variant="Variant.Filled"
+                                                   Size="Size.Small"
+                                                   OnClick="@(() => _showUploadSection = true)">
+                                            Upload
+                                        </MudButton>
+                                    </MudStack>
+
+                                    <!-- Workflow Status Section -->
+                                    @if (_isWorkflowProcessing)
+                                    {
+                                        <MudPaper Elevation="0" Class="pa-3" Style="background-color: #e3f2fd; border: 1px solid #90caf9; border-radius: 8px;">
+                                            <MudStack Spacing="1">
+                                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                                    <MudIcon Icon="@Icons.Material.Filled.Info" Color="Color.Info" Size="Size.Small" />
+                                                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Color="Color.Info" StrokeWidth="3" />
+                                                    <MudText Typo="Typo.body2" Color="Color.Info" Style="font-weight: 600;">
+                                                        Processing Status
+                                                    </MudText>
+                                                </MudStack>
+                                                @if (_workflowStatus != null && _workflowStatus.Value.TryGetProperty("stages", out var stages))
+                                                {
+                                                    @foreach (var stage in stages.EnumerateObject())
+                                                    {
+                                                        var stageName = stage.Name.Replace("_", " ");
+                                                        var stageData = stage.Value;
+                                                        var status = stageData.TryGetProperty("status", out var statusProp) ? statusProp.GetString() : "Unknown";
+                                                        var statusIcon = status == "Complete" ? Icons.Material.Filled.CheckCircle : status == "Failed" ? Icons.Material.Filled.Error : Icons.Material.Filled.HourglassEmpty;
+                                                        var iconColor = status == "Complete" ? Color.Success : status == "Failed" ? Color.Error : Color.Info;
+                                                        
+                                                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="ml-6">
+                                                            <MudIcon Icon="@statusIcon" Color="@iconColor" Size="Size.Small" />
+                                                            <MudText Typo="Typo.body2" Color="Color.Info" Style="text-transform: capitalize;">
+                                                                @stageName: @status
+                                                            </MudText>
+                                                        </MudStack>
+                                                    }
+                                                }
+                                                else
+                                                {
+                                                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="ml-6">
+                                                        <MudIcon Icon="@Icons.Material.Filled.HourglassEmpty" Color="Color.Info" Size="Size.Small" />
+                                                        <MudText Typo="Typo.body2" Color="Color.Info">Starting workflow...</MudText>
+                                                    </MudStack>
+                                                }
+                                            </MudStack>
+                                        </MudPaper>
+                                    }
+
+                                    <!-- Files List -->
+                                    @if (!_projectFiles.Any())
+                                    {
+                                        <MudPaper Elevation="0" Class="pa-6 empty-state-panel">
+                                            <MudStack AlignItems="AlignItems.Center" Spacing="2">
+                                                <MudIcon Icon="@Icons.Material.Filled.UploadFile" Size="Size.Large" Color="Color.Secondary" />
+                                                <MudText Typo="Typo.body2" Color="Color.Secondary">No files uploaded yet</MudText>
+                                                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                                    Upload files to get started with analysis
+                                                </MudText>
+                                            </MudStack>
+                                        </MudPaper>
+                                    }
+                                    else
+                                    {
+                                        <MudStack Spacing="1">
+                                            @foreach (var file in _projectFiles)
+                                            {
+                                                <MudPaper Elevation="0" Class="file-item pa-2">
+                                                    <MudStack Spacing="1">
+                                                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                                                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Style="flex: 1; min-width: 0;">
+                                                                @if (CanViewFile(file.FileName))
+                                                                {
+                                                                    <MudTooltip Text="View file" Arrow="true">
+                                                                        <MudIconButton Icon="@Icons.Material.Filled.Visibility"
+                                                                                       Size="Size.Small"
+                                                                                       Color="Color.Info"
+                                                                                       OnClick="@(async () => await ViewFileAsync(file.FileName, false))" />
+                                                                    </MudTooltip>
+                                                                }
+                                                                <MudIcon Icon="@GetFileIcon(file.FileName)" Size="Size.Small" Color="Color.Info" />
+                                                                <MudText Typo="Typo.body2" Class="file-name">
+                                                                    @GetFileDisplayName(file.FileName)
+                                                                </MudText>
+                                                                @if (!string.IsNullOrWhiteSpace(file.Description))
+                                                                {
+                                                                    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="file-description">
+                                                                        — @file.Description
+                                                                    </MudText>
+                                                                }
+                                                            </MudStack>
+                                                
+                                                            <MudStack Row="true" Spacing="0" AlignItems="AlignItems.Center">
+                                                                @if (!_editingFileDescriptions.Contains(file.FileName))
+                                                                {
+                                                                    <MudTooltip Text="Edit description" Arrow="true">
+                                                                        <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                                                                       Size="Size.Small"
+                                                                                       OnClick="@(() => StartEditingDescription(file))" />
+                                                                    </MudTooltip>
+                                                                }
+                                                                
+                                                                @if (_deletingFiles.Contains(file.FileName))
+                                                                {
+                                                                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Color="Color.Default" />
+                                                                }
+                                                                else
+                                                                {
+                                                                    <MudTooltip Text="Delete file" Arrow="true">
+                                                                        <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                                                                       Size="Size.Small"
+                                                                                       Color="Color.Default"
+                                                                                       OnClick="@(async () => await DeleteFileAsync(file.FileName))" />
+                                                                    </MudTooltip>
+                                                                }
+                                                            </MudStack>
+                                                        </MudStack>
+                                                
+                                                        @if (_editingFileDescriptions.Contains(file.FileName))
+                                                        {
+                                                            <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Class="pt-2">
+                                                                <MudTextField @bind-Value="_editingDescriptions[file.FileName]"
+                                                                              Placeholder="Enter file description"
+                                                                              Variant="Variant.Outlined"
+                                                                              Margin="Margin.Dense"
+                                                                              FullWidth="true" />
+                                                                <MudIconButton Icon="@Icons.Material.Filled.Check"
+                                                                               Size="Size.Small"
+                                                                               Color="Color.Success"
+                                                                               Variant="Variant.Filled"
+                                                                               OnClick="@(async () => await SaveFileDescriptionAsync(file))" />
+                                                                <MudIconButton Icon="@Icons.Material.Filled.Close"
+                                                                               Size="Size.Small"
+                                                                               OnClick="@(() => CancelEditingDescription(file.FileName))" />
+                                                            </MudStack>
+                                                        }
+                                                    </MudStack>
+                                                </MudPaper>
+                                            }
+                                        </MudStack>
+                                    }
+                                </MudStack>
+
+                                <MudDivider />
+
+                                <!-- Workflow Files Section -->
+                                <MudStack Spacing="3">
+                                    @{
+                                        var workflowFiles = _projectFiles.Any() && _projectFiles[0].ProcessingFiles.Any() 
+                                            ? _projectFiles[0].ProcessingFiles 
+                                            : new List<string>();
+                                    }
+
+                                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                        <MudIcon Icon="@Icons.Material.Filled.AccountTree" Size="Size.Small" />
+                                        <MudText Typo="Typo.subtitle2" Style="font-weight: 600;">Workflow Files</MudText>
+                                        @if (workflowFiles.Any())
+                                        {
+                                            <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Text">
+                                                @workflowFiles.Count
+                                            </MudChip>
+                                            <MudSpacer />
+                                            <MudTooltip Text="Delete all workflow files" Arrow="true">
+                                                <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                                               Size="Size.Small"
+                                                               Color="Color.Default"
+                                                               OnClick="@(async () => await ShowDeleteWorkflowDialogAsync())" />
+                                            </MudTooltip>
+                                        }
+                                    </MudStack>
+
+                                    @if (!workflowFiles.Any())
+                                    {
+                                        <MudPaper Elevation="0" Class="pa-4 empty-state-panel">
+                                            <MudStack AlignItems="AlignItems.Center" Spacing="2">
+                                                <MudIcon Icon="@Icons.Material.Filled.AutoAwesome" Size="Size.Medium" Color="Color.Secondary" />
+                                                <MudText Typo="Typo.body2" Color="Color.Secondary">No workflow files generated</MudText>
+                                                <MudText Typo="Typo.caption" Color="Color.Secondary" Align="Align.Center">
+                                                    Run analysis on uploaded documents to generate workflow files
+                                                </MudText>
+                                            </MudStack>
+                                        </MudPaper>
+                                    }
+                                    else
+                                    {
+                                        <MudStack Spacing="1">
+                                            @foreach (var processingFile in workflowFiles)
+                                            {
+                                                <MudPaper Elevation="0" Class="file-item pa-2">
+                                                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                                        @if (CanViewFile(processingFile))
+                                                        {
+                                                            <MudTooltip Text="View processing file" Arrow="true">
+                                                                <MudIconButton Icon="@Icons.Material.Filled.Visibility"
+                                                                               Size="Size.Small"
+                                                                               Color="Color.Info"
+                                                                               OnClick="@(async () => await ViewFileAsync(processingFile, true))" />
+                                                            </MudTooltip>
+                                                        }
+                                                        <MudIcon Icon="@GetFileIcon(processingFile)" Size="Size.Small" Color="Color.Info" />
+                                                        <MudText Typo="Typo.body2" Class="file-name">
+                                                            @GetFileDisplayName(processingFile)
+                                                        </MudText>
+                                                    </MudStack>
+                                                </MudPaper>
+                                            }
+                                        </MudStack>
+                                    }
+                                </MudStack>
+                            </MudStack>
+                        </MudCardContent>
+                    </MudCard>
+                }
+                else
+                {
+                    <!-- Empty State for Right Panel -->
+                    <MudCard Elevation="2" Style="height: 100%; min-height: 400px;">
+                        <MudCardContent Class="d-flex align-center justify-center" Style="height: 100%;">
+                            <MudStack AlignItems="AlignItems.Center" Spacing="3">
+                                <MudAvatar Size="Size.Large" Color="Color.Default" Variant="Variant.Outlined">
+                                    <MudIcon Icon="@Icons.Material.Filled.FolderOpen" Size="Size.Large" />
+                                </MudAvatar>
+                                <MudText Typo="Typo.h6" Color="Color.Secondary">Select a Project</MudText>
+                                <MudText Typo="Typo.body2" Color="Color.Secondary" Align="Align.Center" Style="max-width: 300px;">
+                                    Choose a project from the list on the left to view its details and manage files.
+                                </MudText>
+                            </MudStack>
+                        </MudCardContent>
+                    </MudCard>
+                }
+            </MudItem>
+        </MudGrid>
+    }
+</MudContainer>
+
+<style>
+    .projects-list-container {
+        max-height: calc(100vh - 350px);
+        min-height: 300px;
+        overflow-y: auto;
+        overflow-x: hidden;
+    }
+    
+    .projects-list-container::-webkit-scrollbar {
+        width: 6px;
+    }
+    
+    .projects-list-container::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    
+    .projects-list-container::-webkit-scrollbar-thumb {
+        background: var(--mud-palette-gray-light);
+        border-radius: 3px;
+    }
+    
+    .projects-list-container::-webkit-scrollbar-thumb:hover {
+        background: var(--mud-palette-gray-default);
+    }
+    
+    .project-item {
+        transition: background-color 0.15s ease;
+        border-radius: 4px;
+    }
+    
+    .project-item:hover {
+        background-color: var(--mud-palette-action-default-hover);
+    }
+    
+    .project-item-selected {
+        background-color: #e3f2fd !important;
+    }
+    
+    .project-item-selected:hover {
+        background-color: #e3f2fd !important;
+    }
+    
+    .file-item {
+        background-color: #f5f5f5;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        transition: background-color 0.15s ease;
+    }
+    
+    .file-item:hover {
+        background-color: #eeeeee;
+    }
+    
+    .file-name {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .file-description {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .workflow-status-panel {
+        background-color: var(--mud-palette-info-lighten);
+        border: 1px solid var(--mud-palette-info);
+        border-radius: 8px;
+    }
+    
+    .empty-state-panel {
+        background-color: var(--mud-palette-background-gray);
+        border-radius: 8px;
+        border: 1px dashed var(--mud-palette-lines-default);
+    }
+    
+    .gap-2 {
+        gap: 8px;
+    }
+</style>
+
+@code {
+    // Your existing code here...
+}

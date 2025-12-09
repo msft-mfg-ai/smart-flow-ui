@@ -69,6 +69,14 @@ public class ProfileService
         var loadingMessage = string.Empty;
         var profileSource = string.Empty;
 
+        var jsonOptions = new System.Text.Json.JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true,
+            DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,
+            ReadCommentHandling = System.Text.Json.JsonCommentHandling.Skip,
+            AllowTrailingCommas = true
+        };
+
         var profileConfigurationBlobStorageContainer = _appConfiguration.ProfileConfigurationBlobStorageContainer;
         if (!string.IsNullOrEmpty(profileConfigurationBlobStorageContainer))
         {
@@ -80,7 +88,7 @@ public class ProfileService
                 var blobClient = container.GetBlobClient("profiles.json");
                 var downloadResult = await blobClient.DownloadContentAsync();
 
-                var profileStorageData = System.Text.Json.JsonSerializer.Deserialize<List<ProfileDefinition>>(Encoding.UTF8.GetString(downloadResult.Value.Content));
+                var profileStorageData = System.Text.Json.JsonSerializer.Deserialize<List<ProfileDefinition>>(Encoding.UTF8.GetString(downloadResult.Value.Content), jsonOptions);
                 if (profileStorageData != null)
                 {
                     loadingMessage += LogLoadingMessage($"{profileStorageData.Count} profiles were loaded from storage file in {profileConfigurationBlobStorageContainer} on {DateTime.Now:MMMM d} at {DateTime.Now:HH:mm:ss}!");
@@ -104,7 +112,7 @@ public class ProfileService
                 profileSource = "Config";
                 loadingMessage += LogLoadingMessage("Found Profile Configuration Key, decoding the value... ");
                 var bytes = Convert.FromBase64String(profileConfig);
-                var profileConfigData = System.Text.Json.JsonSerializer.Deserialize<List<ProfileDefinition>>(Encoding.UTF8.GetString(bytes));
+                var profileConfigData = System.Text.Json.JsonSerializer.Deserialize<List<ProfileDefinition>>(Encoding.UTF8.GetString(bytes), jsonOptions);
                 if (profileConfigData != null)
                 {
                     loadingMessage += LogLoadingMessage($"{profileConfigData.Count} profiles were loaded from configuration key value on {DateTime.Now:MMMM d} at {DateTime.Now:HH:mm:ss}!");

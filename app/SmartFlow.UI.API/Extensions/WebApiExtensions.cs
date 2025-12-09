@@ -79,7 +79,8 @@ internal static class WebApiExtensions
             HelloText = configuration.GetValue<string>("HelloText", "How can I help you today?"),
             ShowSampleQuestions = configuration.GetValue<bool>("ShowSampleQuestions", true),
             ShowPremiumAOAIToggleSelection = configuration.GetValue<bool>("ShowPremiumAOAIToggleSelection", true),
-            DisclaimerMessage = configuration.GetValue<string>("DisclaimerMessage", string.Empty)
+            DisclaimerMessage = configuration.GetValue<string>("DisclaimerMessage", string.Empty),
+            EnabledNavigationPaths = configuration.GetValue<string?>("EnabledNavigationPaths", null)
         };
 
         return Results.Ok(uiConfig);

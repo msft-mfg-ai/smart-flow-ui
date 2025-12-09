@@ -3,23 +3,19 @@
 <!-- This page is intended for conversational Q&A. -->
 
 <PageTitle>Chat</PageTitle>
-<!-- Top Section (Fixed Height) -->
-<div class="header" style="background-color: @Color.Primary"></div>
 
 <!-- Middle Section (Fills Remaining Space) -->
-<div class="content" id="answerSection" style="background-color: @Color.Primary">
+<div class="content" id="answerSection">
 	<MudGrid Justify="Justify.Center">
-		<MudItem id="answers" xs="12" Class="overflow-x-auto">
+		<MudItem id="answers" xs="12">
 			@if (_questionAndAnswerMap is { Count: 0 })
 			{
-				<div class="d-flex align-content-center flex-wrap flex-grow-1 full-height">
-	
+				<div class="initial-view">
 					<Examples Profile=@_selectedProfileSummary Message="@AppConfiguration.HelloText" OnExampleClicked="@OnAskQuestionAsync" />
 
 					@if (_selectedProfileSummary != null && _selectedProfileSummary.PromptTemplates != null && _selectedProfileSummary.PromptTemplates.Any())
 					{
-
-						<MudStack Row="true" StretchItems="StretchItems.None" Justify="Justify.Center" Style="width: 100%;">
+						<MudStack Row="true" StretchItems="StretchItems.None" Justify="Justify.Center" Style="width: 100%; max-width: 900px; margin: 2rem auto 0;">
 							<TextInputV4 Label="Prompt"
 							Placeholder="Additional details..."
 							Disabled=@_isReceivingResponse
@@ -30,7 +26,6 @@
 							SupportsFileUpload=@_supportsFileUpload UserSelectionModel="@_userSelectionModel" SelectedProfileSummary="@_selectedProfileSummary" />
 						</MudStack>
 					}
-
 				</div>
 			}
 			else
@@ -40,12 +35,6 @@
 					{
 						<MudStack Justify="Justify.Center" AlignItems="AlignItems.Start" Spacing="4">
 							<MudBadge Origin="Origin.TopLeft" Overlap="true" Color="Color.Secondary" Icon="@Icons.Material.Filled.QuestionMark" Class="d-flex align-self-end">
-								@*                                 <MudPaper Class="ma-1 pa-6 d-flex flex-column" Elevation="3">
-                                    <MudText Typo="Typo.body1" Align="Align.End">@question</MudText>
-                                    <MudText Typo="Typo.caption" Align="Align.End" Color="Color.Secondary">
-                                        @($"Asked at {askedOn:h:mm:ss tt} on {askedOn:M/dd/yy}")
-                                    </MudText>
-                                </MudPaper>         *@
 								<Question UserQuestion="@question" AskedOn="askedOn" />
 							</MudBadge>
 							<div class="ten-twelves">
@@ -79,7 +68,7 @@
 </div>
 
 <!-- Bottom Section (Fixed Height) -->
-<div class="footer" >
+<div class="footer">
 	<MudGrid Justify="Justify.Center">
 		<MudItem xs="12" Class="rounded">
 			<MudGrid>
@@ -139,16 +128,6 @@
 </div>
 
 <style>
-
-    .header {
-        background: #fff;
-        text-align: center;
-        position: fixed;
-        width: 100%;
-        top: 70px;
-        height: 5px;
-    }
-
     .footer {
         padding: 0px 16px;
     }
@@ -158,8 +137,15 @@
         padding: 15px;
         background: #fff;
         margin-top: 0px;
-/*         margin-bottom: 175px; */
         height: 100%;
+    }
+
+    .initial-view {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem 1rem;
     }
 
     table {
@@ -183,5 +169,4 @@
     tr:nth-child(even) {
         background-color: #f9f9f9;
     }
-
 </style>

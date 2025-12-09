@@ -1,0 +1,159 @@
+@* Workflow Status Panel Component *@
+@using global::Shared.Models
+
+<MudPaper Elevation="3" Class="mt-4">
+    <MudToolBar Dense="true" Style="background-color: var(--mud-palette-surface); border-bottom: 1px solid var(--mud-palette-divider);">
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.Autorenew" Class="mr-2" />
+            Workflow Status
+        </MudText>
+        <MudSpacer />
+        @if (Workflow != null && Workflow.State == WorkflowState.InProgress)
+        {
+            <MudProgressCircular Size="Size.Small" Indeterminate="true" Color="Color.Primary" />
+        }
+    </MudToolBar>
+
+    @if (Workflow == null)
+    {
+        <div class="pa-4">
+            <MudAlert Severity="Severity.Info" Dense="true">
+                No active workflow. Upload and analyze documents to see processing status.
+            </MudAlert>
+        </div>
+    }
+    else
+    {
+        <div class="pa-4">
+            <!-- Workflow Header -->
+            <MudStack Spacing="2" Class="mb-4">
+                <MudText Typo="Typo.body1" Style="font-weight: 500;">
+                    <MudIcon Icon="@Icons.Material.Filled.Description" Size="Size.Small" Class="mr-1" />
+                    @Workflow.FileName
+                </MudText>
+                
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Status:</MudText>
+                    @switch (Workflow.State)
+                    {
+                        case WorkflowState.InProgress:
+                            <MudChip T="string" Size="Size.Small" Color="Color.Info" Icon="@Icons.Material.Filled.Autorenew">
+                                In Progress
+                            </MudChip>
+                            break;
+                        case WorkflowState.Completed:
+                            <MudChip T="string" Size="Size.Small" Color="Color.Success" Icon="@Icons.Material.Filled.CheckCircle">
+                                Completed
+                            </MudChip>
+                            break;
+                        case WorkflowState.Failed:
+                            <MudChip T="string" Size="Size.Small" Color="Color.Error" Icon="@Icons.Material.Filled.Error">
+                                Failed
+                            </MudChip>
+                            break;
+                        default:
+                            <MudChip T="string" Size="Size.Small" Color="Color.Default" Icon="@Icons.Material.Filled.Circle">
+                                Not Started
+                            </MudChip>
+                            break;
+                    }
+                </MudStack>
+
+                @if (Workflow.State == WorkflowState.InProgress)
+                {
+                    <MudProgressLinear Color="Color.Primary" 
+                                       Value="@Workflow.ProgressPercentage" 
+                                       Class="my-2"
+                                       Size="Size.Medium" />
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                        @Workflow.ProgressPercentage% Complete
+                    </MudText>
+                }
+            </MudStack>
+
+            <MudDivider Class="my-3" />
+
+            <!-- Workflow Steps -->
+            <MudTimeline TimelineOrientation="TimelineOrientation.Vertical" 
+                         TimelinePosition="TimelinePosition.Start"
+                         TimelineAlign="TimelineAlign.Start">
+                @foreach (var step in Workflow.Steps)
+                {
+                    <MudTimelineItem Color="@GetStepColor(step.State)" 
+                                     Size="Size.Small"
+                                     Elevation="0">
+                        <ItemOpposite>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                @GetStepLabel(step.State)
+                            </MudText>
+                        </ItemOpposite>
+                        <ItemContent>
+                            <MudStack Spacing="1">
+                                <MudText Typo="Typo.body2" Style="font-weight: 500;">
+                                    @GetStepIcon(step.State) @step.Name
+                                </MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                    @step.Description
+                                </MudText>
+                                @if (step.State == StepState.Failed && !string.IsNullOrEmpty(step.ErrorMessage))
+                                {
+                                    <MudAlert Severity="Severity.Error" Dense="true" Class="mt-2">
+                                        @step.ErrorMessage
+                                    </MudAlert>
+                                }
+                            </MudStack>
+                        </ItemContent>
+                    </MudTimelineItem>
+                }
+            </MudTimeline>
+
+            @if (Workflow.StartTime.HasValue)
+            {
+                <MudDivider Class="my-3" />
+                <MudStack Row="true" Spacing="4">
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                        Started: @Workflow.StartTime.Value.ToLocalTime().ToString("g")
+                    </MudText>
+                    @if (Workflow.EndTime.HasValue)
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                            Completed: @Workflow.EndTime.Value.ToLocalTime().ToString("g")
+                        </MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                            Duration: @((Workflow.EndTime.Value - Workflow.StartTime.Value).ToString(@"mm\:ss"))
+                        </MudText>
+                    }
+                </MudStack>
+            }
+        </div>
+    }
+</MudPaper>
+
+@code {
+    [Parameter]
+    public WorkflowStatus? Workflow { get; set; }
+
+    private Color GetStepColor(StepState state) => state switch
+    {
+        StepState.Completed => Color.Success,
+        StepState.InProgress => Color.Info,
+        StepState.Failed => Color.Error,
+        _ => Color.Default
+    };
+
+    private string GetStepLabel(StepState state) => state switch
+    {
+        StepState.Completed => "Completed",
+        StepState.InProgress => "In Progress",
+        StepState.Failed => "Failed",
+        _ => "Pending"
+    };
+
+    private MarkupString GetStepIcon(StepState state) => state switch
+    {
+        StepState.Completed => (MarkupString)"<i class='mud-icon-root mud-svg-icon mud-icon-size-small' style='color: var(--mud-palette-success);'>?</i>",
+        StepState.InProgress => (MarkupString)"<i class='mud-icon-root mud-svg-icon mud-icon-size-small' style='color: var(--mud-palette-info);'>?</i>",
+        StepState.Failed => (MarkupString)"<i class='mud-icon-root mud-svg-icon mud-icon-size-small' style='color: var(--mud-palette-error);'>?</i>",
+        _ => (MarkupString)"<i class='mud-icon-root mud-svg-icon mud-icon-size-small' style='color: var(--mud-palette-text-secondary);'>?</i>"
+    };
+}

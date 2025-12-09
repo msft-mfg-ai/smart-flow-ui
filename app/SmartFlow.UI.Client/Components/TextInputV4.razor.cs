@@ -91,7 +91,7 @@ public sealed partial class TextInputV4
     {
         Console.WriteLine("UploadFilesAsync");
         var buffer = new byte[file.Size];
-        await file.OpenReadStream(8192000).ReadAsync(buffer);
+        await file.OpenReadStream(52428800).ReadAsync(buffer);
         var imageContent = Convert.ToBase64String(buffer);
 
         var fileSummary = new FileSummary($"data:{file.ContentType};base64,{imageContent}", file.Name, file.ContentType);
@@ -105,7 +105,7 @@ public sealed partial class TextInputV4
         foreach (var file in files)
         {
             var buffer = new byte[file.Size];
-            await file.OpenReadStream(8192000).ReadAsync(buffer);
+            await file.OpenReadStream(52428800).ReadAsync(buffer);
             var imageContent = Convert.ToBase64String(buffer);
 
             var fileSummary = new FileSummary($"data:{file.ContentType};base64,{imageContent}", file.Name, file.ContentType);

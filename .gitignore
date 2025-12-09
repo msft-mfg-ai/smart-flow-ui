@@ -408,6 +408,7 @@ app/SmartFlowUI/frontend/wwwroot/appsettings.json
 app/SmartFlowUI/backend/appsettings.Development-v1.json
 app/SmartFlowUI/backend/Properties/launchSettings.json
 
+
 infra/bicep/*.parameters.json
 !infra/bicep/main.parameters.json
 .vscode/settings.json

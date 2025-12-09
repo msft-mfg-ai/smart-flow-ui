@@ -71,9 +71,12 @@ public class AppConfiguration
     public string XMsTokenAadAccessToken { get; init; } = "X-MS-TOKEN-AAD-ACCESS-TOKEN";
 
     public string? AOAIStandardChatGptDeployment { get; init; }
+    public string? AOAIEmbeddingsDeploymentKey { get; init; }
     public string? AOAIStandardServiceEndpoint { get; init; }
     public string? AOAIStandardServiceKey { get; init; }
 
+    // Azure AI Gateway / APIM
+    public string? AzureAIGatewayAPIMKey { get; init; }
 
     // Azure AI Projects
     public string? AzureAIFoundryProjectEndpoint { get; init; }

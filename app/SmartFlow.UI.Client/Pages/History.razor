@@ -3,11 +3,9 @@
 <PageTitle>Chat History</PageTitle>
 
 <MudGrid Justify="Justify.Center">
-     <MudItem xs="12">
-        <MudCheckBox T="bool" @bind-Value="@_showFeeback" @bind-Value:after="OnChangeFeedbackFilerAsync" Label="Show Feedback"></MudCheckBox>
-     </MudItem>
+
     <MudItem xs="12">
-        <MudTable Items="@_feedback" Dense="true" Hover="true" Bordered="true" FixedHeader="true" Elevation="4">
+        <MudTable Items="@_chatSessions" Dense="true" Hover="true" Bordered="true" FixedHeader="true" Elevation="4">
             <ToolBarContent>
                 @if (_isLoadingDocuments)
                 {
@@ -21,30 +19,16 @@
                 <MudSpacer />
             </ToolBarContent>
             <HeaderContent>
-                <MudTh Style="text-align:center">Question</MudTh>
-                <MudTh Style="text-align:center">
-                    <MudTableSortLabel SortBy="new Func<ChatHistoryResponse, object>(d => d.Prompt)">Answer</MudTableSortLabel>
-                </MudTh>
-                <MudTh>
-                    <MudTableSortLabel SortBy="new Func<ChatHistoryResponse, object>(d => d.Rating)">Rating</MudTableSortLabel>
-                </MudTh>
-                <MudTh Style="text-align:center">
-                    <MudTableSortLabel SortBy="new Func<ChatHistoryResponse, object>(d => d.Model)">Model</MudTableSortLabel>
-                </MudTh>
-                <MudTh Style="text-align:center">
-                    <MudTableSortLabel SortBy="new Func<ChatHistoryResponse, object>(d => d.ElapsedMilliseconds)">ElapsedMilliseconds</MudTableSortLabel>
-                </MudTh>
-                <MudTh>
-                    <MudTableSortLabel SortBy="new Func<ChatHistoryResponse, object>(d => d.Timestamp.ToString())">Timestamp</MudTableSortLabel>
-                </MudTh>
+                <MudTh Style="text-align:center">Description</MudTh>
+                <MudTh Style="text-align:center">Profile</MudTh>
+                <MudTh Style="text-align:center">Timestamp</MudTh>
+                <MudTh Style="text-align:center"></MudTh>
             </HeaderContent>
             <RowTemplate>
-                <MudTd DataLabel="Question" Style="text-align:center"><strong>@context.Prompt</strong></MudTd>
-                <MudTd DataLabel="Answer">@context.Answer</MudTd>
-                <MudTd DataLabel="Rating">@context.Rating<br />@context.Feedback</MudTd>
-                <MudTd DataLabel="Model">@context.Model</MudTd>
-                <MudTd DataLabel="ElapsedMilliseconds">@context.ElapsedMilliseconds</MudTd>
-                <MudTd DataLabel="Timestamp">@($"{context.Timestamp:G}")</MudTd>
+                <MudTd DataLabel="Description" Style="text-align:center"><strong>@context.Description</strong></MudTd>
+                <MudTd DataLabel="Profile" Style="text-align:center"><MudChip T="string" Variant="Variant.Text" Size="Size.Small">@context.Profile</MudChip></MudTd>
+                <MudTd DataLabel="Timestamp" Style="text-align:center"><strong>@context.Timestamp</strong></MudTd>
+                <MudTd DataLabel="Timestamp" Style="text-align:center"><MudButton Variant="Variant.Outlined" Size="Size.Small" OnClick="@(() => ViewChat(context.ChatId))">View</MudButton></MudTd>              
             </RowTemplate>
             <PagerContent>
                 <MudTablePager />

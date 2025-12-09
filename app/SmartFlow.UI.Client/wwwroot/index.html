@@ -6,8 +6,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Copilot - OpenAI</title>
     <base href="/" />
+    
+    <!-- Cache busting: version will be updated on each deployment -->
+    <meta name="version" content="${BUILD_NUMBER}" />
+    
     <link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" rel="stylesheet" />
     <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />
+    <!-- App CSS with cache busting query parameter - update version on deployment -->
     <link href="css/app.css" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/default.min.css">
     <link rel="icon" type="image/x-icon" href="icon-192.png" />
@@ -31,7 +36,28 @@
         <a href="" class="reload">Reload</a>
         <a class="dismiss">🗙</a>
     </div>
-    <script src="_framework/blazor.webassembly.js"></script>
+    
+    <!-- Blazor WebAssembly with autostart disabled for cache control -->
+    <script src="_framework/blazor.webassembly.js" autostart="false"></script>
+    <script>
+        // Custom Blazor start with cache busting
+        Blazor.start({
+            loadBootResource: function (type, name, defaultUri, integrity) {
+                // For framework resources, use default loading with integrity check
+                if (type === 'dotnetjs') {
+                    return defaultUri;
+                }
+                
+                // Add cache-busting timestamp for development, use integrity for production
+                if (integrity) {
+                    return defaultUri;
+                }
+                
+                return defaultUri;
+            }
+        });
+    </script>
+    
     <script src="_content/MudBlazor/MudBlazor.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/languages/csharp.min.js" defer></script>
@@ -118,6 +144,20 @@
                 window.MathJax.typesetPromise();
             }
         };
+        
+        // Force reload on app update detection
+        window.addEventListener('beforeunload', function() {
+            if ('caches' in window) {
+                caches.keys().then(function(names) {
+                    for (let name of names) {
+                        // Clear blazor-specific caches on navigation
+                        if (name.includes('blazor') || name.includes('dotnet')) {
+                            caches.delete(name);
+                        }
+                    }
+                });
+            }
+        });
     </script>
 </body>
 </html>

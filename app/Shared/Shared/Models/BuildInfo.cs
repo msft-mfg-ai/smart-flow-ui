@@ -75,7 +75,7 @@ public class BuildInfo
         BuildId = buildId;
         BranchName = branchName;
         CommitHash = commitHash;
-        ImageTag = ImageTag;
+        ImageTag = imageTag;
     }
 
     private static BuildInfo Create()

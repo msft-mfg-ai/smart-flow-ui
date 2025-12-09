@@ -1,0 +1,55 @@
+@using MudBlazor
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.Description" Class="mr-2" />
+            @Title
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudPaper Elevation="0" Class="pa-4" Style="background-color: var(--mud-palette-background-grey); max-height: 600px; overflow-y: auto;">
+            <MudText Typo="Typo.body1" Style="white-space: pre-wrap; font-family: 'Consolas', 'Monaco', monospace;">@Content</MudText>
+        </MudPaper>
+        
+        @if (!string.IsNullOrWhiteSpace(Content))
+        {
+            <MudText Typo="Typo.caption" Class="mt-2" Color="Color.Secondary">
+                Character count: @Content.Length
+            </MudText>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Close" Variant="Variant.Text">Close</MudButton>
+        <MudButton Color="Color.Primary" 
+                   Variant="Variant.Filled" 
+                   OnClick="CopyToClipboard"
+                   StartIcon="@Icons.Material.Filled.ContentCopy">
+            Copy to Clipboard
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] public required IMudDialogInstance Dialog { get; set; }
+    [Parameter] public string Title { get; set; } = "System Prompt";
+    [Parameter] public string Content { get; set; } = string.Empty;
+    
+    [Inject] public required ISnackbar Snackbar { get; set; }
+    [Inject] public required IJSRuntime JSRuntime { get; set; }
+
+    private void Close() => Dialog.Close();
+
+    private async Task CopyToClipboard()
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", Content);
+            Snackbar.Add("System prompt copied to clipboard", Severity.Success);
+        }
+        catch
+        {
+            Snackbar.Add("Failed to copy to clipboard", Severity.Error);
+        }
+    }
+}

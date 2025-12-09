@@ -1,0 +1,52 @@
+::deep .mud-table-row.selected-project {
+    background-color: var(--mud-palette-primary-lighten) !important;
+}
+
+::deep .mud-table-row.selected-project:hover {
+    background-color: var(--mud-palette-primary-lighten) !important;
+}
+
+::deep .mud-table-row {
+    cursor: pointer;
+}
+
+::deep .mud-list-item.project-item {
+    transition: all 0.15s ease;
+    margin-bottom: 2px;
+    border-radius: 4px;
+}
+
+::deep .mud-list-item.project-item:hover {
+    background-color: var(--mud-palette-action-default-hover);
+}
+
+::deep .mud-list-item.project-item-selected {
+    background-color: #e3f2fd !important;
+}
+
+::deep .mud-list-item.project-item-selected:hover {
+    background-color: #e3f2fd !important;
+}
+
+::deep .mud-list-item {
+    cursor: pointer;
+}
+
+::deep .mud-button-group .mud-button {
+    min-width: auto;
+}
+
+::deep .flex-wrap {
+    flex-wrap: wrap;
+}
+
+::deep .mud-card-header-actions {
+    margin-top: 0 !important;
+    align-self: center !important;
+}
+
+::deep .mud-card-header-content {
+    flex: 1;
+    overflow: visible;
+}
+

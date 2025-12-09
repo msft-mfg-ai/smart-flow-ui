@@ -34,4 +34,4 @@ public class RequestDiagnosticsBuilder
     }
 }
 
-public record ExecutionStepResult(string Name, string Result, List<SupportingContentRecord> Sources = null);
+public record ExecutionStepResult(string Name, string Result, List<SupportingContentRecord>? Sources = null);

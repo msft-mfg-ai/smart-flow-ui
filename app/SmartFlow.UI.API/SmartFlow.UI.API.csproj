@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <LangVersion>preview</LangVersion>
@@ -12,16 +12,34 @@
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <NoWarn>1701;1702;CS8604;CS8618</NoWarn>
+    <NoWarn>1701;1702;CS8602;CS8603;CS8604;CS8618;CA2000</NoWarn>
+    <!-- Enable debugging support -->
+    <DebugType>portable</DebugType>
+    <DebugSymbols>true</DebugSymbols>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <NoWarn>1701;1702;CS8604;CS8607;CS8618</NoWarn>
+    <NoWarn>1701;1702;CS8602;CS8603;CS8604;CS8607;CS8618;CA2000</NoWarn>
+    <!-- Optimize for production -->
+    <DebugType>none</DebugType>
+    <DebugSymbols>false</DebugSymbols>
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Components\**" />
+    <Content Remove="Components\**" />
+    <EmbeddedResource Remove="Components\**" />
+    <None Remove="Components\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Agents.AI" />
+    <PackageReference Include="Microsoft.Extensions.AI.OpenAI" />
+    <PackageReference Include="OpenAI" />
     <ProjectReference Include="..\shared\Shared\Shared.csproj" />
     <ProjectReference Include="..\SmartFlow.UI.Client\SmartFlow.UI.Client.csproj" />
+    <PackageReference Include="Azure.AI.OpenAI" />
+    <PackageReference Include="Microsoft.Agents.AI.OpenAI" />
     <PackageReference Include="Microsoft.Agents.Authentication.Msal" />
     <PackageReference Include="Microsoft.Agents.Hosting.AspNetCore" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" />
@@ -31,9 +49,6 @@
     <PackageReference Include="Microsoft.ApplicationInsights.AspNetCore" />
     <PackageReference Include="Microsoft.Azure.Cosmos" />
     <PackageReference Include="Microsoft.Extensions.Azure" />
-    <PackageReference Include="Microsoft.SemanticKernel" />
-    <PackageReference Include="Microsoft.SemanticKernel.Agents.AzureAI" />
-    <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" />
     <PackageReference Include="PdfPig" />
     <PackageReference Include="Swashbuckle.AspNetCore" />
     <PackageReference Include="TiktokenSharp" />
@@ -62,6 +77,7 @@
     <EmbeddedResource Include="Services\Profile\profiles.json" />
     <EmbeddedResource Include="Services\Profile\Prompts\CSVCopilotSystemPrompt.txt" />
     <EmbeddedResource Include="Services\Profile\Prompts\ChatSimpleSystemPrompt.txt" />
+    <EmbeddedResource Include="Services\Profile\Prompts\ProductAdvisorRAGChatSystemPrompt.txt" />
     <EmbeddedResource Include="Services\Profile\Prompts\RAGChatSystemPrompt.txt" />
     <EmbeddedResource Include="Services\Profile\Prompts\ChatSimpleUserPrompt.txt" />
     <EmbeddedResource Include="Services\Profile\Prompts\RAGChatUserPrompt.txt" />

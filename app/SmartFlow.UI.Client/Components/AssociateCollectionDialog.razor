@@ -1,0 +1,99 @@
+@using global::Shared.Models
+@using MudBlazor
+
+<MudDialog>
+    <DialogContent>
+        <MudText Class="mb-4">
+            Select a collection to associate with index <strong>@IndexName</strong>:
+        </MudText>
+        
+        @if (!AvailableCollections.Any())
+        {
+            <MudAlert Severity="Severity.Warning">
+                No available collections to associate.
+            </MudAlert>
+        }
+        else
+        {
+            <MudSelect T="string" 
+                       @bind-Value="_selectedCollectionName" 
+                       Label="Collection" 
+                       Variant="Variant.Outlined"
+                       AnchorOrigin="Origin.BottomCenter"
+                       HelperText="Select a collection to associate with this index">
+                @foreach (var collection in AvailableCollections.OrderBy(c => c.Name))
+                {
+                    <MudSelectItem T="string" Value="@collection.Name">
+                        <MudStack Spacing="0">
+                            <MudText Typo="Typo.body1">@collection.Name</MudText>
+                            @if (!string.IsNullOrWhiteSpace(collection.Type))
+                            {
+                                <MudText Typo="Typo.caption" Color="Color.Primary">Type: @collection.Type</MudText>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(collection.Description))
+                            {
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">@collection.Description</MudText>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(collection.IndexName))
+                            {
+                                <MudText Typo="Typo.caption" Color="Color.Warning">Currently: @collection.IndexName</MudText>
+                            }
+                        </MudStack>
+                    </MudSelectItem>
+                }
+            </MudSelect>
+            
+            @if (!string.IsNullOrEmpty(_selectedCollectionName))
+            {
+                var selectedCollection = AvailableCollections.FirstOrDefault(c => c.Name == _selectedCollectionName);
+                if (selectedCollection != null && !string.IsNullOrEmpty(selectedCollection.IndexName))
+                {
+                    <MudAlert Severity="Severity.Warning" Class="mt-3">
+                        <strong>Note:</strong> This collection is currently associated with index <strong>@selectedCollection.IndexName</strong>. 
+                        Proceeding will replace the existing association.
+                    </MudAlert>
+                }
+            }
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" 
+                   Variant="Variant.Text">
+            Cancel
+        </MudButton>
+        <MudButton Color="Color.Primary" 
+                   Variant="Variant.Filled" 
+                   OnClick="Associate"
+                   Disabled="@(string.IsNullOrEmpty(_selectedCollectionName))">
+            Associate
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] 
+    public required IMudDialogInstance MudDialog { get; set; }
+
+    [Parameter] 
+    public string IndexName { get; set; } = string.Empty;
+
+    [Parameter] 
+    public List<CollectionInfo> AvailableCollections { get; set; } = new();
+
+    private string _selectedCollectionName = string.Empty;
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
+    private void Associate()
+    {
+        if (string.IsNullOrEmpty(_selectedCollectionName))
+        {
+            return;
+        }
+
+        MudDialog.Close(DialogResult.Ok(_selectedCollectionName));
+    }
+}

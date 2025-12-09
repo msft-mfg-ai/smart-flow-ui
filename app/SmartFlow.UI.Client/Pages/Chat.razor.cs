@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 
 using System.Net;
 
@@ -355,7 +355,7 @@ public sealed partial class Chat
 
     private async Task LoadArchivedChatAsync(CancellationToken cancellationToken, string chatId)
     {
-        var chatMessages = await ApiClient.GetChatHistorySessionAsync(cancellationToken, chatId).ToListAsync();
+        var chatMessages = await System.Linq.AsyncEnumerable.ToListAsync(ApiClient.GetChatHistorySessionAsync(cancellationToken, chatId), cancellationToken);
         var profile = chatMessages.First().Profile;
         _selectedProfile = profile;
         _selectedProfileSummary = _profiles.FirstOrDefault(x => x.Name == profile);

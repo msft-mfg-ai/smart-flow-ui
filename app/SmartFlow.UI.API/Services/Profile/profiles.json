@@ -9,48 +9,5 @@
       "Write a function in C# that will invoke a rest API",
       "Explain why popcorn pops to a kid who loves watching it in the microwave."
     ]
-  },
-  {
-    "Name": "Auto Body Damage Analysis",
-    "Id": "AutoBodyDamageAdvisor",
-    "Approach": "ENDPOINTASSISTANTTASK",
-    "SecurityModel": "None",
-    "SecurityModelGroupMembership": [ "LocalDevUser" ],
-    "SampleQuestions": [
-      "Perform a damage analysis of this wrecked car image"
-    ],
-    "AssistantEndpointSettings": {
-      "APIEndpointSetting": "AutoBodyDamageAdvisorEndpoint",
-      "APIEndpointKeySetting": "AutoBodyDamageAdvisorApiKey",
-      "AllowFileUpload": true
-    }
-  },
-  {
-    "Name": "Color Blind Image Analysis",
-    "Id": "ColorBlindTester",
-    "Approach": "ENDPOINTASSISTANTTASK",
-    "SecurityModel": "None",
-    "SecurityModelGroupMembership": [ "LocalDevUser" ],
-    "SampleQuestions": [
-      "Analyze this image for conformance to color-blindness image creation standards"
-    ],
-    "AssistantEndpointSettings": {
-      "APIEndpointSetting": "ColorBlindEndpoint",
-      "APIEndpointKeySetting": "ColorBlindApiKey",
-      "AllowFileUpload": true
-    }
-  },
-  {
-    "Name": "Bad Key Endpoint",
-    "Id": "BadKeyTester",
-    "Approach": "ENDPOINTASSISTANTTASK",
-    "SecurityModel": "None",
-    "SecurityModelGroupMembership": [ "LocalDevUser" ],
-    "SampleQuestions": ["Where is the key?", "Why is it defined incorrectly?" ],
-    "AssistantEndpointSettings": {
-      "APIEndpointSetting": "ColorBlindEndpoint",
-      "APIEndpointKeySetting": "BogusKey", // bad key intentionally to test UI view
-      "AllowFileUpload": true
-    }
   }
 ]

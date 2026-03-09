@@ -64,7 +64,7 @@ jobs:
 
       - name: Extract Docker metadata (GHCR)
         id: meta-ghcr
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ${{ steps.vars.outputs.ghcr_image }}
           tags: |
@@ -72,7 +72,7 @@ jobs:
 
       - name: Extract Docker metadata (ACR)
         id: meta-acr
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ${{ steps.vars.outputs.acr_image }}
           tags: |

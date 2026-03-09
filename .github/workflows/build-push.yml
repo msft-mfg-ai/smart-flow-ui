@@ -79,7 +79,7 @@ jobs:
             type=raw,value=${{ steps.vars.outputs.datetime }}
 
       - name: Build and push to GHCR and ACR
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: ./app
           file: ./app/Dockerfile
